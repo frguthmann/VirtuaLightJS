@@ -11,8 +11,16 @@ function drawScene() {
 
     mvPushMatrix();
     rotateTheCube();
+    
+    // Send vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+
+    // Send colors
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
+    gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+
+    // Send triangles
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
     setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);

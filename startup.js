@@ -1,11 +1,17 @@
 var canvas;
 var gl;
+var shaderProgram;
+
+var mvMatrix;
+var perspectiveMatrix;
+
 var verticesBuffer;
 var verticesIndexBuffer;
-var mvMatrix;
-var shaderProgram;
+var verticesColorBuffer;
+
 var vertexPositionAttribute;
-var perspectiveMatrix;
+var vertexColorAttribute;
+
 var mesh;
 var lights = [];
 
@@ -96,6 +102,9 @@ function initShaders() {
   
   vertexPositionAttribute = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
   gl.enableVertexAttribArray(vertexPositionAttribute);
+
+  vertexColorAttribute = gl.getAttribLocation(shaderProgram, 'aVertexColor');
+  gl.enableVertexAttribArray(vertexColorAttribute);
 }
 
 function getShader(gl, id, type) {
@@ -145,12 +154,32 @@ function initBuffers() {
     // Vertex Buffer
     verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([].concat.apply([], mesh.m_positions)), gl.STATIC_DRAW);
+    var positions = [];
+    mesh.m_positions.forEach(function(pos){
+        positions.push(pos.elements);
+    });
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([].concat.apply([], positions)), gl.STATIC_DRAW);
 
     // Index buffer
     verticesIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([].concat.apply([], mesh.m_triangles)), gl.STATIC_DRAW);
+    var triangles = [];
+    mesh.m_triangles.forEach(function(tri){
+        triangles.push(tri.elements);
+    });
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([].concat.apply([], triangles)), gl.STATIC_DRAW);
+
+    // Color Buffer
+    verticesColorBuffer = gl.createBuffer();
+    var colors = [];
+    for(var i=0; i<positions.length; i++){
+        colors.push(Math.random());
+        colors.push(Math.random());
+        colors.push(Math.random());
+        colors.push(1.0);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 }
 
 function initLights(){

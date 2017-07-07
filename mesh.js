@@ -24,16 +24,16 @@ class Mesh {
 
         for(var i = 0; i < sizeV; i++){
             tmp = items[i+2].split(' ');
-            this.m_positions[i] = [parseFloat(tmp[0]),parseFloat(tmp[1]),parseFloat(tmp[2])];
+            this.m_positions[i] = $V([parseFloat(tmp[0]),parseFloat(tmp[1]),parseFloat(tmp[2])]);
             //console.log(this.m_positions[i]);
         }
         for(var i = 0; i < sizeT; i++) {
             tmp = items[i+2+sizeV].split(' ');
-            this.m_triangles[i] = [parseInt(tmp[1]),parseInt(tmp[2]),parseInt(tmp[3])];
+            this.m_triangles[i] = $V([parseInt(tmp[1]),parseInt(tmp[2]),parseInt(tmp[3])]);
             //console.log(this.m_triangles[i]);
         }
         
-        //this.centerAndScaleToUnit ();
+        this.centerAndScaleToUnit ();
         
         //addPlane();
         //recomputeNormals ();
@@ -49,20 +49,20 @@ class Mesh {
         var c = $V([0,0,0]);
         var positionsSize = this.m_positions.length;
         for(var i = 0; i < positionsSize; i++){
-            c += this.m_positions[i];
+            c = c.add(this.m_positions[i]);
         }
-        c /= positionsSize;
-        var maxD = $V(this.m_positions[0]).distanceFrom(c);
-        
+        c = c.multiply(1.0/positionsSize);
+        var maxD = this.m_positions[0].distanceFrom(c);
+
         for (var i = 0; i < positionsSize; i++){
-            var m = $V(this.m_positions[0]).distanceFrom(c);
+            var m = this.m_positions[0].distanceFrom(c);
             if (m > maxD){
                 maxD = m;
             }
         }
 
         for(var i = 0; i < positionsSize; i++){
-            this.m_positions[i] = (this.m_positions[i] - c) / maxD;
+            this.m_positions[i] = (this.m_positions[i]).subtract(c).multiply( 1.0 / maxD);
         }
     }
 

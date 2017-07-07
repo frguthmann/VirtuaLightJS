@@ -8,9 +8,11 @@ var perspectiveMatrix;
 var verticesBuffer;
 var verticesIndexBuffer;
 var verticesColorBuffer;
+var verticesNormalBuffer;
 
 var vertexPositionAttribute;
 var vertexColorAttribute;
+var vertexNormalAttribute;
 
 var mesh;
 var lights = [];
@@ -103,6 +105,9 @@ function initShaders() {
   vertexPositionAttribute = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
   gl.enableVertexAttribArray(vertexPositionAttribute);
 
+  vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
+  gl.enableVertexAttribArray(vertexNormalAttribute);
+
   vertexColorAttribute = gl.getAttribLocation(shaderProgram, 'aVertexColor');
   gl.enableVertexAttribArray(vertexColorAttribute);
 }
@@ -158,7 +163,8 @@ function initBuffers() {
     mesh.m_positions.forEach(function(pos){
         positions.push(pos.elements);
     });
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([].concat.apply([], positions)), gl.STATIC_DRAW);
+    positions = [].concat.apply([], positions);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
     // Index buffer
     verticesIndexBuffer = gl.createBuffer();
@@ -167,7 +173,18 @@ function initBuffers() {
     mesh.m_triangles.forEach(function(tri){
         triangles.push(tri.elements);
     });
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([].concat.apply([], triangles)), gl.STATIC_DRAW);
+    triangles = [].concat.apply([], triangles);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
+
+    // Normals Buffer
+    verticesNormalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
+    var normals = [];
+    mesh.m_normals.forEach(function(norm){
+        normals.push(norm.elements);
+    });
+    normals = [].concat.apply([], normals);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
 
     // Color Buffer
     verticesColorBuffer = gl.createBuffer();
@@ -180,6 +197,7 @@ function initBuffers() {
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
 }
 
 function initLights(){

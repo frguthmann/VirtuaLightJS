@@ -36,7 +36,7 @@ class Mesh {
         this.centerAndScaleToUnit ();
         
         //addPlane();
-        //recomputeNormals ();
+        this.recomputeNormalsSimple ();
     }
 
     clear () {
@@ -64,6 +64,38 @@ class Mesh {
         for(var i = 0; i < positionsSize; i++){
             this.m_positions[i] = (this.m_positions[i]).subtract(c).multiply( 1.0 / maxD);
         }
+    }
+
+    recomputeNormalsSimple() {
+
+        this.m_normals = [];
+        var positionSize = this.m_positions.length;
+        for(var i=0; i<positionSize; i++){
+            this.m_normals[i] = $V([0,0,0]);
+        }
+        //console.log(this.m_normals);
+
+        var trianglesSize = this.m_triangles.length;
+        for (var i = 0; i < trianglesSize; i++) {
+            var e01 = this.m_positions[this.m_triangles[i].elements[1]].subtract(this.m_positions[this.m_triangles[i].elements[0]]);
+            var e02 = this.m_positions[this.m_triangles[i].elements[2]].subtract(this.m_positions[this.m_triangles[i].elements[0]]);
+            var n = e01.cross(e02);
+            //console.log(n, n.toUnitVector());
+            n = n.toUnitVector();
+            //console.log("post:", n);
+
+            for(var j = 0; j < 3; j++){
+                //console.log(n,this.m_normals[this.m_triangles[i].elements[j]], n.add(this.m_normals[this.m_triangles[i].elements[j]]));
+                this.m_normals[this.m_triangles[i].elements[j]] = n.add(this.m_normals[this.m_triangles[i].elements[j]]);
+                //console.log(this.m_normals[this.m_triangles[i].elements[j]]);
+            }
+        }
+
+        var normalsSize =  this.m_normals.length;
+        for (var i = 0; i <normalsSize; i++){
+            this.m_normals[i] = this.m_normals[i].toUnitVector();
+        }
+        //console.log(this.m_normals);
     }
 
 }

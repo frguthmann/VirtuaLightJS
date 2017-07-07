@@ -11,23 +11,27 @@
         <script src="startup.js"></script>
 
         <script id="shader-vs" type="x-shader/x-vertex">
-            attribute vec3 aVertexPosition;
-            attribute vec4 aVertexColor;
+            attribute highp vec3 aVertexPosition;
+            attribute highp vec3 aVertexNormal;
+            attribute highp vec4 aVertexColor;
 
-            uniform mat4 uMVMatrix;
-            uniform mat4 uPMatrix;
+            uniform highp mat4 uMVMatrix;
+            uniform highp mat4 uPMatrix;
+            uniform highp mat4 uNormalMatrix;
 
-            varying lowp vec4 vColor;
+            varying highp vec4 vColor;
+            varying highp vec4 vNormal;
 
             void main(void) {
                 gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
                 vColor = aVertexColor;
+                vNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
             }
         </script>
 
         <script id="shader-fs" type="x-shader/x-fragment">
-            varying lowp vec4 vColor;
-
+            varying highp vec4 vColor;
+            varying highp vec4 vNormal;
             void main(void) {
                 gl_FragColor = vColor;
             }

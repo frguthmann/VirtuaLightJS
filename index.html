@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+<html>
+
+    <head>
+        <script src="Utils/sylvester.js"></script>
+        <script src="Utils/glUtils.js"></script>
+        <script src="lightsource.js"></script>
+        <script src="mesh.js"></script>
+        <script src="models/model.js"></script>
+        <script src="startup.js"></script>
+
+        <script id="shader-vs" type="x-shader/x-vertex">
+            attribute vec3 aVertexPosition;
+            uniform mat4 uMVMatrix;
+            uniform mat4 uPMatrix;
+            void main(void) {
+                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            }
+        </script>
+
+        <script id="shader-fs" type="x-shader/x-fragment">
+            void main(void) {
+                gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            }
+        </script>
+
+        <script src="main_loop.js"></script>
+        <script src="matrix_utility.js"></script>
+    </head>
+    
+    <body onload="start()">
+        <!-- Editing the width and height attributes of a canvas element after the context has been created will also not change the number of pixels to be drawn.
+        To change the resolution which WebGL renders at, such as when the user resizes the window of a full-document canvas or you wish to provide in-app adjustable graphics settings, you will need to call the WebGL context's viewport() function to acknowledge the change.
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        -->
+        <canvas id="glCanvas" width="640" height="480">
+            Your browser doesn't appear to support the 
+            <code>&lt;canvas&gt;</code> element.
+         </canvas>
+    </body>
+
+</html>

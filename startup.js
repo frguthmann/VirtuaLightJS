@@ -2,8 +2,9 @@ var canvas;
 var gl;
 var shaderProgram;
 
+var pMatrix;
 var mvMatrix;
-var perspectiveMatrix;
+var nMatrix;
 
 var verticesBuffer;
 var verticesIndexBuffer;
@@ -50,6 +51,9 @@ function start() {
     // Initiate buffers
     initBuffers();
 
+    // Fill the uniform buffers
+    initUBOs();
+
     // Draw the scene every 15ms ~ 60FPS
     setInterval(drawScene, 15);
 
@@ -72,8 +76,10 @@ function initWebGL(canvas) {
 
 
 function initShaders() {
-
-    shaderProgram = createProgram(gl, getShaderSource('vs'), getShaderSource('fs'));
+    vertex_shader = vertex_shader.replace(/^\s+|\s+$/g, '');
+    fragment_shader = fragment_shader.replace(/^\s+|\s+$/g, '');
+    shaderProgram = createProgram(gl, vertex_shader, fragment_shader);
+    //shaderProgram = createProgram(gl, getShaderSource('vs'), getShaderSource('fs'));
 
     // If creating the shader program failed, alert
 
@@ -83,6 +89,8 @@ function initShaders() {
 
     gl.useProgram(shaderProgram);
 
+    
+    // Enable uniform blocks
     var uniformPerDrawLocation = gl.getUniformBlockIndex(shaderProgram, 'PerDraw');
     var uniformPerPassLocation = gl.getUniformBlockIndex(shaderProgram, 'PerPass');
     var uniformPerSceneLocation = gl.getUniformBlockIndex(shaderProgram, 'PerScene');
@@ -91,6 +99,8 @@ function initShaders() {
     gl.uniformBlockBinding(shaderProgram, uniformPerPassLocation, 1);
     gl.uniformBlockBinding(shaderProgram, uniformPerSceneLocation, 2);
 
+    
+    // Enable attribute buffers
     vertexPositionAttribute = 0;
     vertexNormalAttribute = 1;
     vertexColorAttribute = 2;
@@ -153,25 +163,17 @@ function initBuffers() {
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+}
 
+function initUBOs(){
     // Transform matrix uniform buffer object
     // mat4 P, mat4 MV, mat3 Mnormal
-    transforms = new Float32Array([
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0,
-            
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0, 
-            
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0
-    ]);
+    
+    pMatrix  = Matrix.I(4);
+    mvMatrix = Matrix.I(4);
+    nMatrix  = Matrix.I(4);
+    transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
+
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
@@ -182,7 +184,6 @@ function initBuffers() {
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
     light = new Float32Array(flattenObject(lights[0]));
-    console.log(light);
     gl.bufferData(gl.UNIFORM_BUFFER, light, gl.DYNAMIC_DRAW);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, light);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
@@ -210,7 +211,6 @@ function initBuffers() {
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 2, uniformPerSceneBuffer);
-
 }
 
 function initLights(){

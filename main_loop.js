@@ -4,7 +4,7 @@ var lastCubeUpdateTime = null;
 function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    perspectiveMatrix = makePerspective(45, 640.0/480.0, 0.1, 100.0);
+    pMatrix = makePerspective(45, 640.0/480.0, 0.1, 100.0);
 
     loadIdentity();
     mvTranslate([-0.0, 0.0, -6.0]);
@@ -12,6 +12,7 @@ function drawScene() {
     mvPushMatrix();
     rotateTheCube();
     
+    // Only if the mesh changed
     // Send vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
@@ -23,6 +24,10 @@ function drawScene() {
     // Send colors
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+    
+
+    // Update transforms
+    setMatrixUniforms();
 
     // Updating UBOs before drawing
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
@@ -33,8 +38,6 @@ function drawScene() {
 
     // Send triangles
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
-
-    //setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
     mvPopMatrix();
 
@@ -52,14 +55,7 @@ function rotateTheCube(){
 }
 
 function setMatrixUniforms() {
-  var pUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-  gl.uniformMatrix4fv(pUniform, false, new Float32Array(perspectiveMatrix.flatten()));
-
-  var mvUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
-  gl.uniformMatrix4fv(mvUniform, false, new Float32Array(mvMatrix.flatten()));
-
-  var normalMatrix = mvMatrix.inverse();
-  normalMatrix = normalMatrix.transpose();
-  var nUniform = gl.getUniformLocation(shaderProgram, 'uNormalMatrix');
-  gl.uniformMatrix4fv(nUniform, false, new Float32Array(normalMatrix.flatten()));
+  nMatrix = mvMatrix.inverse();
+  nMatrix = nMatrix.transpose();
+  transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
 }

@@ -24,9 +24,17 @@ function drawScene() {
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
 
+    // Updating UBOs before drawing
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
+
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, light);
+
     // Send triangles
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
-    setMatrixUniforms();
+
+    //setMatrixUniforms();
     gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
     mvPopMatrix();
 

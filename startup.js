@@ -10,9 +10,13 @@ var verticesIndexBuffer;
 var verticesColorBuffer;
 var verticesNormalBuffer;
 
-var vertexPositionAttribute;
-var vertexColorAttribute;
-var vertexNormalAttribute;
+var uniformPerDrawBuffer;
+var uniformPerPassBuffer;
+var uniformPerSceneBuffer;
+
+var transforms;
+var meshMaterial;
+var light;
 
 var mesh;
 var lights = [];
@@ -21,7 +25,7 @@ function start() {
     canvas = document.getElementById('glCanvas');
 
     // Initialize the GL context
-    gl = initWebGL(canvas);
+    gl = canvas.getContext('webgl2', { antialias: false });
 
     // Only continue if WebGL is available and working
     if (!gl) {
@@ -49,105 +53,52 @@ function start() {
     // Draw the scene every 15ms ~ 60FPS
     setInterval(drawScene, 15);
 
-    // Load file
-    /*var file = '';
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function(){
-        if(xmlhttp.status == 200 && xmlhttp.readyState == 4){
-            file = xmlhttp.responseText;
-
-            // Initiate buffers
-            initBuffers(file);
-
-            // Draw the scene every 15ms ~ 60FPS
-            setInterval(drawScene, 15);
-        }
-    };
-    xmlhttp.open("GET","models/sphere.off",true);
-    xmlhttp.send();*/
 }
 
 
 function initWebGL(canvas) {
-  gl = null;
-  
-  // Try to grab the standard context. If it fails, fallback to experimental.
-  gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-  
-  // If we don't have a GL context, give up now
-  if (!gl) {
+    gl = null;
+
+    // Try to grab the standard context. If it fails, fallback to experimental.
+    gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+    // If we don't have a GL context, give up now
+    if (!gl) {
     alert('Unable to initialize WebGL. Your browser may not support it.');
-  }
-  
-  return gl;
+    }
+
+    return gl;
 }
 
 
 function initShaders() {
-  var fragmentShader = getShader(gl, 'shader-fs');
-  var vertexShader = getShader(gl, 'shader-vs');
-  
-  // Create the shader program
-  
-  shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
-  
-  // If creating the shader program failed, alert
-  
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
-  }
-  
-  gl.useProgram(shaderProgram);
-  
-  vertexPositionAttribute = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
-  gl.enableVertexAttribArray(vertexPositionAttribute);
 
-  vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "aVertexNormal");
-  gl.enableVertexAttribArray(vertexNormalAttribute);
+    shaderProgram = createProgram(gl, getShaderSource('vs'), getShaderSource('fs'));
 
-  vertexColorAttribute = gl.getAttribLocation(shaderProgram, 'aVertexColor');
-  gl.enableVertexAttribArray(vertexColorAttribute);
-}
+    // If creating the shader program failed, alert
 
-function getShader(gl, id, type) {
-  var shaderScript, theSource, currentChild, shader;
-  
-  shaderScript = document.getElementById(id);
-  
-  if (!shaderScript) {
-    return null;
-  }
-  
-  theSource = shaderScript.text;
-
-  if (!type) {
-    if (shaderScript.type == 'x-shader/x-fragment') {
-      type = gl.FRAGMENT_SHADER;
-    } else if (shaderScript.type == 'x-shader/x-vertex') {
-      type = gl.VERTEX_SHADER;
-    } else {
-      // Unknown shader type
-      return null;
+    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
     }
-  }
-  shader = gl.createShader(type);
 
-  gl.shaderSource(shader, theSource);
+    gl.useProgram(shaderProgram);
+
+    var uniformPerDrawLocation = gl.getUniformBlockIndex(shaderProgram, 'PerDraw');
+    var uniformPerPassLocation = gl.getUniformBlockIndex(shaderProgram, 'PerPass');
+    var uniformPerSceneLocation = gl.getUniformBlockIndex(shaderProgram, 'PerScene');
     
-  // Compile the shader program
-  gl.compileShader(shader);  
-    
-  // See if it compiled successfully
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {  
-      console.log('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));  
-      gl.deleteShader(shader);
-      return null;  
-  }
-    
-  return shader;
+    gl.uniformBlockBinding(shaderProgram, uniformPerDrawLocation, 0);
+    gl.uniformBlockBinding(shaderProgram, uniformPerPassLocation, 1);
+    gl.uniformBlockBinding(shaderProgram, uniformPerSceneLocation, 2);
+
+    vertexPositionAttribute = 0;
+    vertexNormalAttribute = 1;
+    vertexColorAttribute = 2;
+
+    gl.enableVertexAttribArray(vertexPositionAttribute);
+    gl.enableVertexAttribArray(vertexNormalAttribute);  
+    gl.enableVertexAttribArray(vertexColorAttribute);  
+
 }
 
 function initBuffers() {
@@ -165,6 +116,8 @@ function initBuffers() {
     });
     positions = [].concat.apply([], positions);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    //var positions = new Float32Array(flattenObject( mesh.m_positions));
 
     // Index buffer
     verticesIndexBuffer = gl.createBuffer();
@@ -175,6 +128,7 @@ function initBuffers() {
     });
     triangles = [].concat.apply([], triangles);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Normals Buffer
     verticesNormalBuffer = gl.createBuffer();
@@ -185,6 +139,7 @@ function initBuffers() {
     });
     normals = [].concat.apply([], normals);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Color Buffer
     verticesColorBuffer = gl.createBuffer();
@@ -197,10 +152,128 @@ function initBuffers() {
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+
+    // Transform matrix uniform buffer object
+    // mat4 P, mat4 MV, mat3 Mnormal
+    transforms = new Float32Array([
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0,
+            
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0, 
+            
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+    ]);
+    uniformPerDrawBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
+    gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+
+    // Light uniform buffer object
+    uniformPerPassBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
+    light = new Float32Array(flattenObject(lights[0]));
+    console.log(light);
+    gl.bufferData(gl.UNIFORM_BUFFER, light, gl.DYNAMIC_DRAW);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, light);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+
+    // Material uniform buffer object
+    var padding = -1;
+    // Buffer is apparently 16-aligned, must pad with 3 floats => 5*4 + 3*4 => 32
+    meshMaterial = new Float32Array([
+        mesh.diffuse,
+        mesh.specular,
+        mesh.shininess,
+        mesh.roughness,
+        mesh.fresnel,
+        padding,
+        padding,
+        padding
+    ]);
+    uniformPerSceneBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerSceneBuffer);
+    gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.STATIC_DRAW);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, meshMaterial);
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+
+    // Bind the UBOs
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 2, uniformPerSceneBuffer);
 
 }
 
 function initLights(){
-    var light = new LightSource($V([0,5,5]),$V([1,1,1]),100);
+    var light = new LightSource($V([0,5,5,0.58]),$V([1,2,3,1]),100);
     lights.push(light);
 }
+
+window.getShaderSource = function(id) {
+    return document.getElementById(id).textContent.replace(/^\s+|\s+$/g, '');
+};
+
+function createShader(gl, source, type) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
+}
+
+window.createProgram = function(gl, vertexShaderSource, fragmentShaderSource) {
+    var program = gl.createProgram();
+    var vshader = createShader(gl, vertexShaderSource, gl.VERTEX_SHADER);
+    var fshader = createShader(gl, fragmentShaderSource, gl.FRAGMENT_SHADER);
+    gl.attachShader(program, vshader);
+    gl.deleteShader(vshader);
+    gl.attachShader(program, fshader);
+    gl.deleteShader(fshader);
+    gl.linkProgram(program);
+
+    var log = gl.getProgramInfoLog(program);
+    if (log) {
+        console.log(log);
+    }
+
+    log = gl.getShaderInfoLog(vshader);
+    if (log) {
+        console.log(log);
+    }
+
+    log = gl.getShaderInfoLog(fshader);
+    if (log) {
+        console.log(log);
+    }
+
+    return program;
+};
+
+// https://gist.github.com/penguinboy/762197
+var flattenObject = function(ob) {
+    var toReturn = [];
+    
+    for (var i in ob) {
+        if (!ob.hasOwnProperty(i)) continue;
+        
+        if ((typeof ob[i]) == 'object') {
+            var flatObject = flattenObject(ob[i]);
+            for (var x in flatObject) {
+                if (!flatObject.hasOwnProperty(x)) continue;
+                
+                toReturn.push(flatObject[x]);
+            }
+        } else {
+            toReturn.push(ob[i]);
+        }
+    }
+    return toReturn;
+};

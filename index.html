@@ -3,38 +3,95 @@
 <html>
 
     <head>
-        <script src="Utils/sylvester.js"></script>
-        <script src="Utils/glUtils.js"></script>
-        <script src="lightsource.js"></script>
-        <script src="mesh.js"></script>
-        <script src="models/model.js"></script>
-        <script src="startup.js"></script>
+        <script type="text/javascript" src="Utils/sylvester.js"></script>
+        <script type="text/javascript" src="Utils/glUtils.js"></script>
+        <script type="text/javascript" src="lightsource.js"></script>
+        <script type="text/javascript" src="mesh.js"></script>
+        <script type="text/javascript" src="models/model.js"></script>
+        <script type="text/javascript" src="startup.js"></script>
 
-        <script id="shader-vs" type="x-shader/x-vertex">
-            attribute highp vec3 aVertexPosition;
-            attribute highp vec3 aVertexNormal;
-            attribute highp vec4 aVertexColor;
+        <script id="vs" type="x-shader/x-vertex">
+            #version 300 es
+            precision highp float;
+            precision highp int;
 
-            uniform highp mat4 uMVMatrix;
-            uniform highp mat4 uPMatrix;
-            uniform highp mat4 uNormalMatrix;
+            layout(std140, column_major) uniform;
 
-            varying highp vec4 vColor;
-            varying highp vec4 vNormal;
+            struct Transform
+            {
+                mat4 uPMatrix;
+                mat4 uMVMatrix;
+                mat4 uNormalMatrix;
+            };
+
+            uniform PerDraw
+            {
+                Transform transform;
+            } u_perDraw;
+
+            layout(location = 0) in vec3 position;
+            layout(location = 1) in vec3 normal;
+            layout(location = 2) in vec4 color;
+
+            out highp vec4 vColor;
+            out highp vec4 vNormal;
 
             void main(void) {
-                gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-                vColor = aVertexColor;
-                vNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
+                gl_Position = u_perDraw.transform.uPMatrix * u_perDraw.transform.uMVMatrix * vec4(position, 1.0);
+                vColor = color;
+                vNormal = u_perDraw.transform.uNormalMatrix * vec4(normal, 1.0);
             }
         </script>
 
-        <script id="shader-fs" type="x-shader/x-fragment">
-            varying highp vec4 vColor;
-            varying highp vec4 vNormal;
+        <script id="fs" type="x-shader/x-fragment">
+            #version 300 es
+            precision highp float;
+            precision highp int;
+
+
+            #define M_PI 3.1415926535897932384626433832795
+            #define MAX_LIGHTS 5
+
+            layout(std140, column_major) uniform;
+
+            struct LightSource
+            {
+                vec4 position;
+                vec4 color;
+                float intensity;
+                // Attenuation:
+                float aconst;
+                float alin;
+                float aquad;
+            };
+
+            struct Mesh{
+                float diffuse;
+                float specular;
+                float shininess;
+                float roughness;
+                float fresnel;
+            };
+
+            uniform PerScene
+            {
+                Mesh mesh;
+            } u_perScene;
+
+            uniform PerPass
+            {
+                LightSource lights;
+            } u_perPass;
+
+            in highp vec4 vColor;
+            in highp vec4 vNormal;
+
+            out vec4 color;
+
             void main(void) {
-                gl_FragColor = vColor;
+                color = vColor;
             }
+
         </script>
 
         <script src="main_loop.js"></script>

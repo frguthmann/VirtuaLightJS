@@ -14,7 +14,7 @@ class Mesh {
     loadOFF(filename) {
         this.clear();
         var sizeV, sizeT, tmp;
-        var items = file.split('\n');
+        var items = filename.split('\n');
         //console.log(items);
 
         tmp = items[1].split(' ');

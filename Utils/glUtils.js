@@ -1,22 +1,22 @@
 // augment Sylvester some
 Matrix.Translation = function (v)
 {
-  if (v.elements.length == 2) {
-    var r = Matrix.I(3);
-    r.elements[2][0] = v.elements[0];
-    r.elements[2][1] = v.elements[1];
-    return r;
-  }
+    if (v.elements.length == 2) {
+        var r = Matrix.I(3);
+        r.elements[2][0] = v.elements[0];
+        r.elements[2][1] = v.elements[1];
+        return r;
+    }
 
-  if (v.elements.length == 3) {
-    var r = Matrix.I(4);
-    r.elements[0][3] = v.elements[0];
-    r.elements[1][3] = v.elements[1];
-    r.elements[2][3] = v.elements[2];
-    return r;
-  }
+    if (v.elements.length == 3) {
+        var r = Matrix.I(4);
+        r.elements[0][3] = v.elements[0];
+        r.elements[1][3] = v.elements[1];
+        r.elements[2][3] = v.elements[2];
+        return r;
+    }
 
-  throw "Invalid length for Translation";
+    throw "Invalid length for Translation";
 }
 
 Matrix.prototype.flatten = function ()

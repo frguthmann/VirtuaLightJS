@@ -1,4 +1,4 @@
-var modeljs = 
+var spherejs = 
 `OFF
 42 80 0
 0 0 -1

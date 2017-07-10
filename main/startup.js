@@ -18,6 +18,7 @@ var uniformPerSceneBuffer;
 var transforms;
 var mesh;
 var lights = [];
+var max_lights = 5;
 
 function start() {
     canvas = document.getElementById('glCanvas');
@@ -113,7 +114,7 @@ function initBuffers() {
 
     // Load obj file
     mesh = new Mesh();
-    mesh.loadOFF(modeljs);
+    mesh.loadOFF(killeroojs);
 
     // Vertex Buffer
     verticesBuffer = gl.createBuffer();
@@ -141,9 +142,9 @@ function initBuffers() {
     // TODO: remove when we have actual lighting calculations
     var colors = [];
     for(var i=0; i<positions.length; i++){
-        colors.push(Math.random());
-        colors.push(Math.random());
-        colors.push(Math.random());
+        colors.push(1.0);
+        colors.push(0.0); //Math.random()
+        colors.push(0.0);
         colors.push(1.0);
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
@@ -229,9 +230,10 @@ function createMatrixTransforms(){
 }
 
 function createLights(){
-    lights.push(new LightSource($V([0,5,5,0.58]),$V([1,2,3,1]),100));
+    var pos = mvMatrix.multiply($V([-5,5,11,1]));
+    lights.push(new LightSource(pos,$V([1,1,1]),100));
     var data = lights.slice(0);
-    for(var i=lights.length; i<5; i++){
+    for(var i=lights.length; i<max_lights; i++){
         data.push(new LightSource());
     }
     return new Float32Array(flattenObject(data).concat(lights.length)); 

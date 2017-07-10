@@ -26,15 +26,20 @@ function start() {
     canvas = document.getElementById('glCanvas');
 
     // Initialize the GL context
-    gl = canvas.getContext('webgl2', { antialias: false });
+    gl = canvas.getContext('webgl2', { antialias: true });
+    var isWebGL2 = !!gl;
+    if(!isWebGL2) {
+        alert("Your browser does not support WebGL2 :/")
+        return;
+    }
 
     // Only continue if WebGL is available and working
     if (!gl) {
     return;
     }
 
-    // Set clear color to black, fully opaque
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    // Set clear color to white, fully opaque
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
     // Enable depth testing
     gl.enable(gl.DEPTH_TEST);
     // Near things obscure far things

@@ -26,7 +26,10 @@ out highp vec4 vNormal;
 
 void main(void) {
     gl_Position = u_perDraw.transform.uPMatrix * u_perDraw.transform.uMVMatrix * vec4(position, 1.0);
-    vColor = color;
     vNormal = u_perDraw.transform.uNormalMatrix * vec4(normal, 1.0);
+    vColor = color;
+    if(color.w < 0.0){
+        vColor.w = abs(color.w) * 0.15;
+    }
 }
 `;

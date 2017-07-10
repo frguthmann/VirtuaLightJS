@@ -15,7 +15,7 @@ function drawScene() {
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
 
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(light)));
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(lights)));
 
     // Send triangles
     gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);

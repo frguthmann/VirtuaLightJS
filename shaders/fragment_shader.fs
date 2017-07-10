@@ -34,7 +34,8 @@ uniform PerScene
 
 uniform PerPass
 {
-    LightSource lights;
+    LightSource lights[MAX_LIGHTS];
+    float nbLights;
 } u_perPass;
 
 in highp vec4 vColor;
@@ -44,5 +45,8 @@ out vec4 color;
 
 void main(void) {
     color = vColor;
+    if(u_perPass.nbLights != 1.0){
+        color = vec4(0.0,1.0,1.0,1.0);
+    }
 }`
 ;

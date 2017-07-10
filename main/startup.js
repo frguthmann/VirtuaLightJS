@@ -16,9 +16,6 @@ var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
 
 var transforms;
-var meshMaterial;
-var light;
-
 var mesh;
 var lights = [];
 
@@ -29,7 +26,7 @@ function start() {
     gl = canvas.getContext('webgl2', { antialias: true });
     var isWebGL2 = !!gl;
     if(!isWebGL2) {
-        alert("Your browser does not support WebGL2 :/")
+        alert("Your browser does not support WebGL2 :/");
         return;
     }
 
@@ -173,16 +170,15 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create and bind light to light UBO
-    createLights();
+    var lightData = createLights();
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
-    var lightData = new Float32Array(flattenObject(light));
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, lightData);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create material UBO and bind it to data
-    createMeshMaterial();
+    var meshMaterial = createMeshMaterial();
     uniformPerSceneBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerSceneBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.STATIC_DRAW);
@@ -233,14 +229,19 @@ function createMatrixTransforms(){
 }
 
 function createLights(){
-    light = new LightSource($V([0,5,5,0.58]),$V([1,2,3,1]),100);
+    lights.push(new LightSource($V([0,5,5,0.58]),$V([1,2,3,1]),100));
+    var data = lights.slice(0);
+    for(var i=lights.length; i<5; i++){
+        data.push(new LightSource());
+    }
+    return new Float32Array(flattenObject(data).concat(lights.length)); 
 }
 
 function createMeshMaterial(){
     // Create material
     var padding = -1;
     // Buffer is apparently 16-aligned, must pad with 3 floats => 5*4 + 3*4 => 32
-    meshMaterial = new Float32Array([
+    return new Float32Array([
         mesh.diffuse,
         mesh.specular,
         mesh.shininess,

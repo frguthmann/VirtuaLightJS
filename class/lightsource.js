@@ -1,5 +1,5 @@
 class LightSource{
-    constructor(position = $V([0,0,0]), color = $V([1,1,1]), intensity = 10, aconst = 1, alin = 1, aquad = 1){
+    constructor(position = $V([0,0,0,1]), color = $V([1,1,1,1]), intensity = 10, aconst = 1, alin = 1, aquad = 1){
         this.position   = position
         this.color      = color;
         this.intensity  = intensity;

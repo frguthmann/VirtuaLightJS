@@ -2,22 +2,32 @@ var canvas;
 var gl;
 var shaderProgram;
 
+// Projection matrix
 var pMatrix;
+// ModelView matrix
 var mvMatrix;
+// Normal matrix
 var nMatrix;
 
+// VBOS
 var verticesBuffer;
 var verticesIndexBuffer;
 var verticesColorBuffer;
 var verticesNormalBuffer;
 
+// UBOS
 var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
 
+// Contains matrices: projection, modelView and normals
 var transforms;
+// Contains the geometry and material properties of the object
 var mesh;
+// Contains the lights of the scene
 var lights = [];
+// Same as lights but with position * modelViewMatrix
+var dataLights = [];
 var max_lights = 5;
 
 function start() {
@@ -36,12 +46,16 @@ function start() {
     return;
     }
 
-    // Set clear color to white, fully opaque
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
     // Enable depth testing
     gl.enable(gl.DEPTH_TEST);
     // Near things obscure far things
     gl.depthFunc(gl.LEQUAL);
+    // Enable ulling 
+    gl.enable(gl.CULL_FACE);
+    // Cull only back faces
+    gl.cullFace(gl.BACK);
+    // Set clear color to white, fully opaque
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
     // Clear the color as well as the depth buffer.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -229,13 +243,27 @@ function createMatrixTransforms(){
 }
 
 function createLights(){
-    lights.push(new LightSource(mvMatrix.multiply($V([0,13,0,1])),$V([1,1,1]),100));
-    lights.push(new LightSource(mvMatrix.multiply($V([5,5,5,1])),$V([1,1,0.5]),100));
-    var data = lights.slice(0);
-    for(var i=lights.length; i<max_lights; i++){
-        data.push(new LightSource());
+    // Actual lights of the scene
+    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,1]),100));
+    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,0.5]),100));
+    
+    // Filling dummy data for up to 5 lights because the UBO / shader expects 5 max
+    for(var i=0; i<max_lights; i++){
+        if(i<lights.length){
+            // Update position with mvMatrix and store in dataLights
+            var l = LightSource.createLightSource(lights[i]);
+            l.position = mvMatrix.multiply(lights[i].position);
+            dataLights.push(l);
+        }else{
+            // Dummy data
+            dataLights.push(new LightSource());
+        }
     }
-    return new Float32Array(flattenObject(data).concat(lights.length)); 
+    
+    var floatArray = new Float32Array(flattenObject(dataLights).concat(lights.length));
+    // Forget about the dummy data, we just had to send it once to the graphic card
+    dataLights = dataLights.slice(0,lights.length);
+    return floatArray;
 }
 
 function createMeshMaterial(){

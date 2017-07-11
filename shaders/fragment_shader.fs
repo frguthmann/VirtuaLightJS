@@ -38,7 +38,7 @@ uniform PerPass
     float nbLights;
 } u_perPass;
 
-in highp vec3 v_view ;
+in highp vec4 v_view ;
 in highp vec3 vNormal;
 in highp vec4 vColor;
 
@@ -53,7 +53,7 @@ void main(void) {
     vec3 diffuse = vec3(0.0,0.0,0.0);
     vec3 specular = vec3(0.0,0.0,0.0);
     
-    vec3 p = normalize(v_view);
+    vec3 p = v_view.xyz;
     vec3 n = normalize(vNormal);
 
     int nbLights = int(u_perPass.nbLights);
@@ -62,7 +62,7 @@ void main(void) {
         vec3 incidentVector = normalize(u_perPass.lights[i].position-p);
         float directionnalAttenuation = max(dot(n, incidentVector), 0.0);
 
-        diffuse += lambertDiffuse() * (directionnalAttenuation) * vec3(vColor) * getIntensityFromPosition(u_perPass.lights[i],p);
+        diffuse += (directionnalAttenuation) * lambertDiffuse() * vec3(vColor) * getIntensityFromPosition(u_perPass.lights[i],p);
         //specular += blinnPhongSpecular(p,n,incidentVector)*directionnalAttenuation*getIntensityFromPosition(u_perPass.lights[i],p);
         specular += microFacetSpecular(p,n,incidentVector,2)*directionnalAttenuation*getIntensityFromPosition(u_perPass.lights[i],p);
     }

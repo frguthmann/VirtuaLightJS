@@ -7,15 +7,17 @@ function drawScene() {
     mvPushMatrix();
     //rotateTheMesh();    
 
-    // Update transforms
+    // Update transforms and lights positions
     setMatrixUniforms();
+    transformLightPositions();
 
     // Updating UBOs before drawing
+    // TODO: Do not update the projection matrix, it never changes
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
 
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(lights)));
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(dataLights)));
 
     // Send triangles
     gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
@@ -38,4 +40,11 @@ function setMatrixUniforms() {
     nMatrix = mvMatrix.inverse();
     nMatrix = nMatrix.transpose();
     transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
+}
+
+function transformLightPositions(){
+    // Update position with the new mvMatrix
+    for(var i=0; i<lights.length; i++){
+        dataLights[i].position = mvMatrix.multiply(lights[i].position);
+    }
 }

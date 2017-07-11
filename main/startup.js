@@ -114,7 +114,7 @@ function initBuffers() {
 
     // Load obj file
     mesh = new Mesh();
-    mesh.loadOFF(killeroojs);
+    mesh.loadOFF(monkeyjs);
 
     // Vertex Buffer
     verticesBuffer = gl.createBuffer();
@@ -221,17 +221,16 @@ function initVAO(){
 }
 
 function createMatrixTransforms(){
-    pMatrix = makePerspective(45, 640.0/480.0, 0.1, 100.0);
-    mvMatrix = Matrix.I(4);
-    mvTranslate([-0.0, 0.0, -6.0]);
+    pMatrix = makePerspective(fovAngle, canvas.width/canvas.height, nearPlane, farPlane);
+    setupCamera();
     nMatrix  = Matrix.I(4);
     // pMatrix + mvMatrix + nMatrix
     transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
 }
 
 function createLights(){
-    var pos = mvMatrix.multiply($V([-5,5,11,1]));
-    lights.push(new LightSource(pos,$V([1,1,1]),100));
+    lights.push(new LightSource(mvMatrix.multiply($V([0,13,0,1])),$V([1,1,1]),100));
+    lights.push(new LightSource(mvMatrix.multiply($V([5,5,5,1])),$V([1,1,0.5]),100));
     var data = lights.slice(0);
     for(var i=lights.length; i<max_lights; i++){
         data.push(new LightSource());

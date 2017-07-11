@@ -5,7 +5,7 @@ function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     mvPushMatrix();
-    rotateTheCube();    
+    //rotateTheMesh();    
 
     // Update transforms
     setMatrixUniforms();
@@ -24,14 +24,13 @@ function drawScene() {
     requestAnimationFrame(drawScene);
 }
 
-
-function rotateTheCube(){
+function rotateTheMesh(){
     var currentTime = Date.now();
         if (lastCubeUpdateTime) {
             var delta = currentTime - lastCubeUpdateTime;
             cubeRotation += (30 * delta) / 1000.0;
         }
-    mvRotate(cubeRotation, [1, 1, 0]);
+    mvRotate(cubeRotation, [0, 1, 0]);
     lastCubeUpdateTime = currentTime;
 }
 

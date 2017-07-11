@@ -3,10 +3,15 @@ var isMouseRDown = false;
 var previousX;
 var previousY;
 
-document.addEventListener("mousemove", getCoords);
-document.addEventListener("mousedown", mouseDown);
-document.addEventListener("mouseup", mouseUp);
-document.addEventListener('contextmenu', function(e) {e.preventDefault();}, false);
+function initInputs(){
+    canvas.addEventListener("mousemove", getCoords);
+    canvas.addEventListener("mousedown", mouseDown);
+    canvas.addEventListener("mouseup", mouseUp);
+    canvas.addEventListener("mousewheel", mouseWheelHandler, false);
+    canvas.addEventListener('contextmenu', function(e) {e.preventDefault();}, false);
+    // Firefox...
+    canvas.addEventListener("DOMMouseScroll", mouseWheelHandler, false);
+}
 
 function getCoords(e) {
     // No buttons pressed
@@ -50,4 +55,9 @@ function mouseUp(e) {
             isMouseRDown = false;
             break;
     }
+}
+
+function mouseWheelHandler(e) {
+    var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
+    zoomCamera(-delta);
 }

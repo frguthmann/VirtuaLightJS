@@ -52,6 +52,11 @@ function setupCamera () {
     mvMatrix = makeLookAt(pos.x, pos.y, pos.z, camTargetX, camTargetY, camTargetZ, 0.0, 1.0, 0.0); // Set up the current modelview matrix with camera transform
 }
 
+function zoomCamera(step){
+    camDist2Target += step;
+    setupCamera();
+}
+
 function polar2CartesianCamera (theta, phi, r, pos) {
     pos.z = r * Math.sin (theta) * Math.cos (phi);
     pos.x = r * Math.sin (theta) * Math.sin (phi);

@@ -32,7 +32,8 @@ var max_lights = 5;
 
 function start() {
     canvas = document.getElementById('glCanvas');
-
+    initInputs();
+    
     // Initialize the GL context
     gl = canvas.getContext('webgl2', { antialias: true });
     var isWebGL2 = !!gl;

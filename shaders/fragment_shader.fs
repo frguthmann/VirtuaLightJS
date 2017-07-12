@@ -48,6 +48,7 @@ float lambertDiffuse();
 vec3 getIntensityFromPosition(LightSource l, vec3 p);
 float blinnPhongSpecular(vec3 p, vec3 n, vec3 incidentVector);
 float microFacetSpecular(vec3 p, vec3 n, vec3 incidentVector, int distriNbr);
+vec4 getLightColor(LightSource l, vec3 p);
 
 void main(void) {
     vec3 diffuse = vec3(0.0,0.0,0.0);
@@ -59,6 +60,12 @@ void main(void) {
     int nbLights = int(u_perPass.nbLights);
 
     for (int i=0 ; i<nbLights; i++){
+
+        if(distance(p,u_perPass.lights[i].position) <= sqrt(0.12) ){
+            color = getLightColor(u_perPass.lights[i], p);
+            return;
+        }
+
         vec3 incidentVector = normalize(u_perPass.lights[i].position-p);
         float directionnalAttenuation = max(dot(n, incidentVector), 0.0);
 
@@ -69,6 +76,7 @@ void main(void) {
     // ----------------------------------------
 
     color = vec4(diffuse,1.0) * vColor.w + vec4(specular,1.0);
+
 }
 
 // Diffuse response of material
@@ -145,6 +153,14 @@ float microFacetSpecular(vec3 p, vec3 n, vec3 incidentVector, int distriNbr){
     float denominator = 4.0 * normDotInc * normDotExc;
 
     return distribution * fresnel * geometry / denominator;
+}
+
+vec4 getLightColor(LightSource l, vec3 p){
+    if(distance(p,l.position) >= sqrt(0.12)*0.8 ){//abs(l.position.y - p.y) <= 0.02 || abs(l.position.y - p.y) <= 0.02 || abs(l.position.z - p.z) <= 0.02){
+        return vec4(0.0,0.0,0.0,1.0);
+    }else{
+        return vec4(l.color, 1.0);
+    }
 }
 
 `;

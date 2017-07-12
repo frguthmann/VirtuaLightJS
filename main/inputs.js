@@ -8,6 +8,7 @@ function initInputs(){
     canvas.addEventListener("mousedown", mouseDown);
     canvas.addEventListener("mouseup", mouseUp);
     canvas.addEventListener("mousewheel", mouseWheelHandler, false);
+    document.addEventListener("keydown", keyboardHandler);
     canvas.addEventListener('contextmenu', function(e) {e.preventDefault();}, false);
     // Firefox...
     canvas.addEventListener("DOMMouseScroll", mouseWheelHandler, false);
@@ -25,10 +26,10 @@ function getCoords(e) {
     var dY = previousY-y;
 
     if(isMouseLDown){
-        rotateCameraByMouse(dX,dY);
-        lastCubeUpdateTime = Date.now() + 2000;
+        camera.rotateByMouse(dX,dY);
+        lastUpdateTime = Date.now() + 2000;
     }else if(isMouseRDown){
-        translateCameraByMouse(dX,dY);
+        camera.translateByMouse(dX,dY);
     }
     previousX = x;
     previousY = y;
@@ -38,7 +39,7 @@ function mouseDown(e) {
     switch(e.button){
         case 0:
             isMouseLDown = true;
-            lastCubeUpdateTime = Date.now() + 2000;
+            lastUpdateTime = Date.now() + 2000;
             break;
         case 2:
             isMouseRDown = true;
@@ -61,5 +62,16 @@ function mouseUp(e) {
 
 function mouseWheelHandler(e) {
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-    zoomCamera(-delta);
+    camera.zoom(-delta);
+}
+
+function keyboardHandler(e) {
+    switch(e.keyCode){
+        case 82:
+            isRotating = !isRotating;
+        break;
+        default:
+            console.log("You pressed: " + e.keyCode);
+        break;
+    }
 }

@@ -1,7 +1,14 @@
-var canvas;
-var stats
+// Webgl program
 var gl;
+// Shader program
 var shaderProgram;
+
+// Main canvas we're drawing in
+var canvas;
+// FPS counter
+var stats;
+// Camera
+var camera = new Camera();
 
 // Projection matrix
 var pMatrix;
@@ -25,6 +32,8 @@ var uniformPerSceneBuffer;
 var transforms;
 // Contains the geometry and material properties of the object
 var mesh;
+// Not in the mesh attribute but still necessary
+var colors = [];
 // Contains the lights of the scene
 var lights = [];
 // Same as lights but with position * modelViewMatrix
@@ -68,11 +77,15 @@ function start() {
     // Initiate shaders
     initShaders();
 
-    // Initiate buffers
-    initBuffers();
+    // Load obj file
+    mesh = new Mesh();
+    mesh.loadOFF(monkeyjs);
 
     // Fill the uniform buffers
     initUBOs();
+
+    // Initiate buffers
+    initBuffers();
 
     // Init VAO
     initVAO();
@@ -132,10 +145,6 @@ function createShader(gl, source, type) {
 
 function initBuffers() {
 
-    // Load obj file
-    mesh = new Mesh();
-    mesh.loadOFF(monkeyjs);
-
     // Vertex Buffer
     verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -160,13 +169,13 @@ function initBuffers() {
     // Color Buffer
     verticesColorBuffer = gl.createBuffer();
     // TODO: remove when we have actual lighting calculations
-    var colors = [];
     for(var i=0; i<positions.length; i++){
         colors.push(1.0);
         colors.push(0.0); //Math.random()
         colors.push(0.0);
         colors.push(1.0);
     }
+
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
@@ -241,8 +250,7 @@ function initVAO(){
 }
 
 function createMatrixTransforms(){
-    pMatrix = makePerspective(fovAngle, canvas.width/canvas.height, nearPlane, farPlane);
-    setupCamera();
+    pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
     nMatrix  = Matrix.I(4);
     // pMatrix + mvMatrix + nMatrix
     transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
@@ -250,12 +258,14 @@ function createMatrixTransforms(){
 
 function createLights(){
     // Actual lights of the scene
-    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,1]),100));
+    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,1]),100));   // 5 5 -5
     lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,0.5]),100));
     
     // Filling dummy data for up to 5 lights because the UBO / shader expects 5 max
     for(var i=0; i<max_lights; i++){
         if(i<lights.length){
+            // Do this if you want to see a cube at the position of the lights
+            enableLightDisplay(lights[i].position.elements);
             // Update position with mvMatrix and store in dataLights
             var l = LightSource.createLightSource(lights[i]);
             l.position = mvMatrix.multiply(lights[i].position);
@@ -286,4 +296,54 @@ function createMeshMaterial(){
         padding,
         padding
     ]);
+}
+
+function enableLightDisplay(lightPos){
+    
+    var offset = mesh.m_positions.length;
+
+    var cubeSize = 0.2;
+    var pos = [
+        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
+        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize])
+    ];
+    mesh.m_positions = mesh.m_positions.concat(pos);
+
+    var idx = [
+        $V([0 + offset,  2 + offset,  1 + offset]),      $V([2 + offset,  3 + offset,  1 + offset]),   // front
+        $V([4 + offset,  5 + offset,  6 + offset]),      $V([5 + offset,  7 + offset,  6 + offset]),   // back
+        $V([4 + offset,  0 + offset,  5 + offset]),      $V([0 + offset,  1 + offset,  5 + offset]),   // top
+        $V([6 + offset,  7 + offset,  2 + offset]),      $V([7 + offset,  3 + offset,  2 + offset]),   // bottom
+        $V([6 + offset,  0 + offset,  4 + offset]),      $V([6 + offset,  2 + offset,  0 + offset]),   // right
+        $V([5 + offset,  1 + offset,  7 + offset]),      $V([1 + offset,  3 + offset,  7 + offset])    // left*/
+    ];
+    mesh.m_triangles = mesh.m_triangles.concat(idx);
+
+    var norm = [
+        $V([ 1,  1, -1]),
+        $V([-1,  1, -1]),
+        $V([ 1, -1, -1]),
+        $V([ 1,  1,  1]),
+        $V([-1,  1,  1]),
+        $V([ 1, -1,  1]),
+        $V([-1, -1, -1]),
+        $V([-1, -1,  1])
+    ];
+    mesh.m_normals = mesh.m_normals.concat(norm);
+
+    var col = [
+         1.0,  1.0,  1.0,  1.0,    // Front face: white
+         1.0,  1.0,  1.0,  1.0,    // Back face: white
+         1.0,  1.0,  1.0,  1.0,    // Top face: white
+         1.0,  1.0,  1.0,  1.0,    // Bottom face: white
+         1.0,  1.0,  1.0,  1.0,    // Right face: white
+         1.0,  1.0,  1.0,  1.0     // Left face: white
+    ];
+    colors = colors.concat(col);
 }

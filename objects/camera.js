@@ -1,71 +1,73 @@
-// Camera initialization
-var fovAngle = 45.0;
-var nearPlane = 0.01;
-var farPlane = 20.0;
-var camTheta = 3*Math.PI/8.0;
-var camPhi = 0.0;
-var camDist2Target = 6.0;
-var camTargetX = 0.0;
-var camTargetY = 0.0;
-var camTargetZ = 0.0;
-
-function translateCameraByMouse(dX, dY){
-    
-    // Compute which direction onscreen horizontal movement is in the scene
-
-    var mxX = Math.cos(camPhi);
-    var myX = 0;
-    var mzX = - Math.sin(camPhi);
-
-    var mxY = Math.cos(camTheta) * Math.sin(camPhi);
-    var myY = - Math.sin(camTheta);
-    var mzY = Math.cos(camTheta) * Math.cos(camPhi);
-
-    camTargetX += 0.01*(mxX*(dX) + mxY*(dY));
-    camTargetY += 0.01*(myY*(dY));
-    camTargetZ += 0.01*(mzX*(dX) + mzY*(dY));
-
-    setupCamera();
-}
-
-function rotateCameraByMouse(dX, dY){
-    camTheta+=(dY)*0.01;
-    camPhi+=(dX)*0.01;
-    if(camTheta<0.0001){
-      camTheta = 0.0001;
+class Camera {
+    constructor(fovAngle = 45.0, nearPlane = 0.01, farPlane = 50.0, camTheta = 3*Math.PI/8.0, camPhi = 0.0,
+                camDist2Target = 6.0, camTargetX = 0.0, camTargetY = 0.0, camTargetZ = 0.0) {
+        this.fovAngle = 45.0;
+        this.nearPlane = 0.01;
+        this.farPlane = 50.0;
+        this.camTheta = 3*Math.PI/8.0;
+        this.camPhi = 0.0;
+        this.camDist2Target = 6.0;
+        this.camTargetX = 0.0;
+        this.camTargetY = 0.0;
+        this.camTargetZ = 0.0;
+        this.setup();
     }
-    if(camTheta > Math.PI - 0.0001){
-        camTheta = Math.PI - 0.0001;
+
+    translateByMouse(dX, dY){
+        // Compute which direction onscreen horizontal movement is in the scene
+        var mxX = Math.cos(this.camPhi);
+        var myX = 0;
+        var mzX = - Math.sin(this.camPhi);
+
+        var mxY = Math.cos(this.camTheta) * Math.sin(this.camPhi);
+        var myY = - Math.sin(this.camTheta);
+        var mzY = Math.cos(this.camTheta) * Math.cos(this.camPhi);
+
+        this.camTargetX += 0.01*(mxX*(dX) + mxY*(dY));
+        this.camTargetY += 0.01*(myY*(dY));
+        this.camTargetZ += 0.01*(mzX*(dX) + mzY*(dY));
+
+        this.setup();
     }
-    setupCamera();
-}
 
-function setupCamera () {
-    mvMatrix = Matrix.I(4);
-    var pos = {x:0,y:0,z:0};
+    rotateByMouse(dX, dY){
+        this.camTheta+=(dY)*0.01;
+        this.camPhi+=(dX)*0.01;
+        if(this.camTheta<0.0001){
+          this.camTheta = 0.0001;
+        }
+        if(this.camTheta > Math.PI - 0.0001){
+            this.camTheta = Math.PI - 0.0001;
+        }
+        this.setup();
+    }
 
-    polar2CartesianCamera(camTheta, camPhi, camDist2Target, pos);
+    setup() {
+        mvMatrix = Matrix.I(4);
+        var pos = {x:0,y:0,z:0};
 
-    pos.x += camTargetX;
-    pos.y += camTargetY;
-    pos.z += camTargetZ;
-    mvMatrix = makeLookAt(pos.x, pos.y, pos.z, camTargetX, camTargetY, camTargetZ, 0.0, 1.0, 0.0); // Set up the current modelview matrix with camera transform
-}
+        this.polar2Cartesian(this.camTheta, this.camPhi, this.camDist2Target, pos);
 
-function zoomCamera(step){
-    camDist2Target = Math.max(1,camDist2Target+step);
-    console.log(camDist2Target);
-    setupCamera();
-}
+        pos.x += this.camTargetX;
+        pos.y += this.camTargetY;
+        pos.z += this.camTargetZ;
+        mvMatrix = makeLookAt(pos.x, pos.y, pos.z, this.camTargetX, this.camTargetY, this.camTargetZ, 0.0, 1.0, 0.0); // Set up the current modelview matrix with camera transform
+    }
 
-function polar2CartesianCamera (theta, phi, r, pos) {
-    pos.z = r * Math.sin (theta) * Math.cos (phi);
-    pos.x = r * Math.sin (theta) * Math.sin (phi);
-    pos.y = r * Math.cos (theta);
-}
+    zoom(step){
+        this.camDist2Target = Math.max(1,this.camDist2Target+step);
+        this.setup();
+    }
 
-function rotateCameraByAngle(phi, pheta){
-    camPhi+=pheta;
-    camTheta+=phi;
-    setupCamera();
+    polar2Cartesian(theta, phi, r, pos) {
+        pos.z = r * Math.sin (theta) * Math.cos (phi);
+        pos.x = r * Math.sin (theta) * Math.sin (phi);
+        pos.y = r * Math.cos (theta);
+    }
+
+    rotateByAngle(phi, pheta){
+        this.camPhi+=pheta;
+        this.camTheta+=phi;
+        this.setup();
+    }
 }

@@ -2,10 +2,11 @@ var cubeRotation = 0.0;
 var lastCubeUpdateTime = null;
 
 function drawScene() {
+    stats.begin();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    mvPushMatrix();
-    //rotateTheMesh();    
+    //mvPushMatrix();
+    rotateTheCamera();    
 
     // Update transforms and lights positions
     setMatrixUniforms();
@@ -21,19 +22,26 @@ function drawScene() {
 
     // Send triangles
     gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
-    mvPopMatrix();
+    //mvPopMatrix();
 
     requestAnimationFrame(drawScene);
+    stats.end();
 }
 
-function rotateTheMesh(){
+function rotateTheCamera(){
     var currentTime = Date.now();
-        if (lastCubeUpdateTime) {
-            var delta = currentTime - lastCubeUpdateTime;
-            cubeRotation += (30 * delta) / 1000.0;
-        }
-    mvRotate(cubeRotation, [0, 1, 0]);
-    lastCubeUpdateTime = currentTime;
+    if (lastCubeUpdateTime) {
+        var delta = currentTime - lastCubeUpdateTime;
+        cubeRotation = (60 * delta) / 1000.0;
+    }else{
+       lastCubeUpdateTime = currentTime; 
+    }
+
+    if(delta > 0 ){
+        //mvRotate(cubeRotation, [0, 1, 0]);
+        rotateCameraByAngle(0,-cubeRotation*0.01);
+        lastCubeUpdateTime = currentTime;
+    }
 }
 
 function setMatrixUniforms() {

@@ -25,7 +25,8 @@ function getCoords(e) {
     var dY = previousY-y;
 
     if(isMouseLDown){
-        rotateCameraByMouse(dX,dY); 
+        rotateCameraByMouse(dX,dY);
+        lastCubeUpdateTime = Date.now() + 2000;
     }else if(isMouseRDown){
         translateCameraByMouse(dX,dY);
     }
@@ -37,6 +38,7 @@ function mouseDown(e) {
     switch(e.button){
         case 0:
             isMouseLDown = true;
+            lastCubeUpdateTime = Date.now() + 2000;
             break;
         case 2:
             isMouseRDown = true;

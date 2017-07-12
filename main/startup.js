@@ -1,4 +1,5 @@
 var canvas;
+var stats
 var gl;
 var shaderProgram;
 
@@ -32,6 +33,10 @@ var max_lights = 5;
 
 function start() {
     canvas = document.getElementById('glCanvas');
+    stats = new Stats();
+    stats.showPanel( 0 );
+    document.body.appendChild( stats.dom );
+
     initInputs();
     
     // Initialize the GL context

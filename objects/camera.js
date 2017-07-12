@@ -2,7 +2,7 @@
 var fovAngle = 45.0;
 var nearPlane = 0.01;
 var farPlane = 20.0;
-var camTheta = 0.01;//Math.PI/2.0;
+var camTheta = 3*Math.PI/8.0;
 var camPhi = 0.0;
 var camDist2Target = 6.0;
 var camTargetX = 0.0;
@@ -53,7 +53,8 @@ function setupCamera () {
 }
 
 function zoomCamera(step){
-    camDist2Target += step;
+    camDist2Target = Math.max(1,camDist2Target+step);
+    console.log(camDist2Target);
     setupCamera();
 }
 
@@ -61,4 +62,10 @@ function polar2CartesianCamera (theta, phi, r, pos) {
     pos.z = r * Math.sin (theta) * Math.cos (phi);
     pos.x = r * Math.sin (theta) * Math.sin (phi);
     pos.y = r * Math.cos (theta);
+}
+
+function rotateCameraByAngle(phi, pheta){
+    camPhi+=pheta;
+    camTheta+=phi;
+    setupCamera();
 }

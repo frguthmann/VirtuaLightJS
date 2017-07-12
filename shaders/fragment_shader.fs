@@ -20,11 +20,12 @@ struct LightSource
 };
 
 struct Mesh{
-    float diffuse;
-    float specular;
+    vec3 diffuse;
+    vec3 specular;
     float shininess;
     float roughness;
     float fresnel;
+    float maxDistLightCube;
 };
 
 uniform PerScene
@@ -44,9 +45,9 @@ in highp vec4 vColor;
 
 out vec4 color;
 
-float lambertDiffuse();
+vec3 lambertDiffuse();
 vec3 getIntensityFromPosition(LightSource l, vec3 p);
-float blinnPhongSpecular(vec3 p, vec3 n, vec3 incidentVector);
+vec3 blinnPhongSpecular(vec3 p, vec3 n, vec3 incidentVector);
 float microFacetSpecular(vec3 p, vec3 n, vec3 incidentVector, int distriNbr);
 vec4 getLightColor(LightSource l, vec3 p);
 
@@ -61,7 +62,7 @@ void main(void) {
 
     for (int i=0 ; i<nbLights; i++){
 
-        if(distance(p,u_perPass.lights[i].position) <= sqrt(0.12) ){
+        if(distance(p,u_perPass.lights[i].position) <= u_perScene.mesh.maxDistLightCube ){
             color = getLightColor(u_perPass.lights[i], p);
             return;
         }
@@ -76,11 +77,10 @@ void main(void) {
     // ----------------------------------------
 
     color = vec4(diffuse,1.0) * vColor.w + vec4(specular,1.0);
-
 }
 
 // Diffuse response of material
-float lambertDiffuse(){
+vec3 lambertDiffuse(){
     return u_perScene.mesh.diffuse / M_PI;
 }
 
@@ -92,12 +92,12 @@ vec3 getIntensityFromPosition(LightSource l, vec3 p){
 }
 
 // Phong BRDF
-float blinnPhongSpecular(vec3 p, vec3 n, vec3 incidentVector){
+vec3 blinnPhongSpecular(vec3 p, vec3 n, vec3 incidentVector){
     // HalfVec
     vec3 excidentVector = normalize(-p);
     vec3 halfVec = (incidentVector + excidentVector) / length(incidentVector + excidentVector);
 
-    float specularComponent = u_perScene.mesh.specular * pow(max(0.0001f,dot(n,halfVec)),u_perScene.mesh.shininess);
+    vec3 specularComponent = u_perScene.mesh.specular * pow(max(0.0001f,dot(n,halfVec)),u_perScene.mesh.shininess);
     return specularComponent;
 }
 
@@ -156,7 +156,7 @@ float microFacetSpecular(vec3 p, vec3 n, vec3 incidentVector, int distriNbr){
 }
 
 vec4 getLightColor(LightSource l, vec3 p){
-    if(distance(p,l.position) >= sqrt(0.12)*0.8 ){//abs(l.position.y - p.y) <= 0.02 || abs(l.position.y - p.y) <= 0.02 || abs(l.position.z - p.z) <= 0.02){
+    if(distance(p,l.position) >= u_perScene.mesh.maxDistLightCube*0.8 ){
         return vec4(0.0,0.0,0.0,1.0);
     }else{
         return vec4(l.color, 1.0);

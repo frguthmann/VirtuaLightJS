@@ -39,6 +39,8 @@ var lights = [];
 // Same as lights but with position * modelViewMatrix
 var dataLights = [];
 var max_lights = 5;
+// Size of the cube representing the light when rendering
+var cubeSize = 0.2;
 
 function start() {
     canvas = document.getElementById('glCanvas');
@@ -77,8 +79,10 @@ function start() {
     // Initiate shaders
     initShaders();
 
-    // Load obj file
-    mesh = new Mesh(1.0,1.0,80.0,0.1,0.91,$V([0.0,0.0,0.0,1.0]));
+    // Load obj file:
+    //mesh = new Mesh($V([0.1,0.2,0.3,1.0]),$V([0.5,0.6,0.7]),80.0,0.1,0.91); //Mesh($V([1.0,0.766,0.336,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
+    //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
+    mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20)
     mesh.loadOFF(monkeyjs);
     // Have to do this here because we use it later
     generateColors();
@@ -280,24 +284,22 @@ function createLights(){
 function createMeshMaterial(){
     // Create material
     var padding = -1;
-    // Buffer is apparently 16-aligned, must pad with 3 floats => 5*4 + 3*4 => 32
-    return new Float32Array([
-        mesh.diffuse,
-        mesh.specular,
+    // Buffer is apparently 16-aligned, must pad with 2 floats => 4*1 + 3*1 + 1*3 + 1*2 padding => 12
+    var a = [
+        mesh.diffuse.elements,
+        mesh.specular.elements,
         mesh.shininess,
         mesh.roughness,
         mesh.fresnel,
+        Math.sqrt(cubeSize*cubeSize*3),
         padding,
-        padding,
-        padding
-    ]);
+    ];
+    return new Float32Array(flattenObject(a));
 }
 
 function enableLightDisplay(lightPos){
     
     var offset = mesh.m_positions.length;
-
-    var cubeSize = 0.2;
     var pos = [
         $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
         $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
@@ -347,7 +349,7 @@ function enableLightDisplay(lightPos){
 
 function generateColors(){
     for(var i=0; i<mesh.m_positions.length; i++){
-        colors.push(mesh.albedo);
+        colors.push(mesh.diffuse);
     }
     colors = flattenObject(colors);
 }

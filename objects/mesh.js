@@ -1,11 +1,11 @@
 class Mesh {
-    constructor() {
-        this.diffuse = 1.0;
-        this.specular = 1.0;
-        this.shininess = 80.0;
-        this.roughness = 0.1;
-        this.fresnel=0.91;
-        this.albedo = $V([1.0,0.0,0.0]);
+    constructor(diffuse = 1.0, specular = 1.0, shininess = 80.0, roughness = 0.1, fresnel=0.91, albedo = $V([1.0,0.0,0.0,1.0])) {
+        this.diffuse = diffuse;
+        this.specular = specular;
+        this.shininess = shininess;
+        this.roughness = roughness;
+        this.fresnel = fresnel;
+        this.albedo = albedo;
         this.firstPlaneVertex = 0;
         this.firstPlaneTriangle = 0;
         this.clear();
@@ -52,8 +52,8 @@ class Mesh {
             c = c.add(this.m_positions[i]);
         }
         c = c.multiply(1.0/positionsSize);
-        var maxD = this.m_positions[0].distanceFrom(c);
 
+        var maxD = this.m_positions[0].distanceFrom(c);
         for (var i = 0; i < positionsSize; i++){
             var m = this.m_positions[0].distanceFrom(c);
             if (m > maxD){
@@ -62,7 +62,7 @@ class Mesh {
         }
 
         for(var i = 0; i < positionsSize; i++){
-            this.m_positions[i] = (this.m_positions[i]).subtract(c).multiply( 1.0 / maxD);
+            this.m_positions[i] = c.add((this.m_positions[i]).subtract(c).multiply( 1.0 / maxD)); // c + (p-c)*s
         }
     }
 

@@ -78,8 +78,10 @@ function start() {
     initShaders();
 
     // Load obj file
-    mesh = new Mesh();
+    mesh = new Mesh(1.0,1.0,80.0,0.1,0.91,$V([0.0,0.0,0.0,1.0]));
     mesh.loadOFF(monkeyjs);
+    // Have to do this here because we use it later
+    generateColors();
 
     // Fill the uniform buffers
     initUBOs();
@@ -168,16 +170,9 @@ function initBuffers() {
 
     // Color Buffer
     verticesColorBuffer = gl.createBuffer();
-    // TODO: remove when we have actual lighting calculations
-    for(var i=0; i<positions.length; i++){
-        colors.push(1.0);
-        colors.push(0.0); //Math.random()
-        colors.push(0.0);
-        colors.push(1.0);
-    }
-
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    var col = new Float32Array(colors);
+    gl.bufferData(gl.ARRAY_BUFFER, col, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
@@ -338,12 +333,21 @@ function enableLightDisplay(lightPos){
     mesh.m_normals = mesh.m_normals.concat(norm);
 
     var col = [
-         1.0,  1.0,  1.0,  1.0,    // Front face: white
-         1.0,  1.0,  1.0,  1.0,    // Back face: white
-         1.0,  1.0,  1.0,  1.0,    // Top face: white
-         1.0,  1.0,  1.0,  1.0,    // Bottom face: white
-         1.0,  1.0,  1.0,  1.0,    // Right face: white
-         1.0,  1.0,  1.0,  1.0     // Left face: white
+         1.0,  1.0,  1.0,  1.0,
+         1.0,  1.0,  1.0,  1.0,
+         1.0,  1.0,  1.0,  1.0,
+         1.0,  1.0,  1.0,  1.0,
+         1.0,  1.0,  1.0,  1.0, 
+         1.0,  1.0,  1.0,  1.0,
+         1.0,  1.0,  1.0,  1.0,
+         1.0,  1.0,  1.0,  1.0 
     ];
     colors = colors.concat(col);
+}
+
+function generateColors(){
+    for(var i=0; i<mesh.m_positions.length; i++){
+        colors.push(mesh.albedo);
+    }
+    colors = flattenObject(colors);
 }

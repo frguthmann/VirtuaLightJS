@@ -1,16 +1,14 @@
-var cubeRotation = 0.0;
-var lastUpdateTime = null;
-var isRotating = true;
+var autoRotation = {lastUpdateTime : null, isRotating : true};
 
 function drawScene() {
     stats.begin();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     //mvPushMatrix();
-    if(isRotating == true){
+    if(autoRotation.isRotating == true){
         rotateTheCamera();    
     }else{
-        lastUpdateTime = Date.now();
+        autoRotation.lastUpdateTime = Date.now();
     }
 
     // Update transforms and lights positions
@@ -35,17 +33,16 @@ function drawScene() {
 
 function rotateTheCamera(){
     var currentTime = Date.now();
-    if (lastUpdateTime) {
-        var delta = currentTime - lastUpdateTime;
-        cubeRotation = (60 * delta) / 1000.0;
+    if (autoRotation.lastUpdateTime) {
+        var delta = currentTime - autoRotation.lastUpdateTime;
+        var cubeRotation = (60 * delta) / 1000.0;
     }else{
-       lastUpdateTime = currentTime; 
+       autoRotation.lastUpdateTime = currentTime; 
     }
 
     if(delta > 0 ){
-        //mvRotate(cubeRotation, [0, 1, 0]);
         camera.rotateByAngle(0,-cubeRotation*0.01);
-        lastUpdateTime = currentTime;
+        autoRotation.lastUpdateTime = currentTime;
     }
 }
 

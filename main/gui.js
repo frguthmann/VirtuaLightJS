@@ -26,6 +26,8 @@ function initGui() {
     }
     f1.open();
 
+    f1.add(autoRotation, 'isRotating').name("Rotate (R)").listen(); 
+
     //gui.close();
 };
 

@@ -5,8 +5,6 @@ var shaderProgram;
 
 // Main canvas we're drawing in
 var canvas;
-// FPS counter
-var stats;
 // Camera
 var camera = new Camera();
 
@@ -28,6 +26,9 @@ var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
 
+// Data that might be modified from the mesh
+var positions;
+
 // Contains matrices: projection, modelView and normals
 var transforms;
 // Contains the geometry and material properties of the object
@@ -44,11 +45,6 @@ var cubeSize = 0.2;
 
 function start() {
     canvas = document.getElementById('glCanvas');
-    stats = new Stats();
-    stats.showPanel( 0 );
-    document.body.appendChild( stats.dom );
-
-    initInputs();
     
     // Initialize the GL context
     gl = canvas.getContext('webgl2', { antialias: true });
@@ -83,7 +79,7 @@ function start() {
     //mesh = new Mesh($V([0.1,0.2,0.3,1.0]),$V([0.5,0.6,0.7]),80.0,0.1,0.91); //Mesh($V([1.0,0.766,0.336,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20)
-    mesh.loadOFF(monkeyjs);
+    mesh.loadOFF(rhinojs);
     // Have to do this here because we use it later
     generateColors();
 
@@ -95,6 +91,12 @@ function start() {
 
     // Init VAO
     initVAO();
+
+    // Display GUI
+    initGui();
+
+    // Activate mouse / keyboard input
+    initInputs();
 
     // Draw the scene
     drawScene();
@@ -154,7 +156,7 @@ function initBuffers() {
     // Vertex Buffer
     verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-    var positions = new Float32Array(flattenObject(mesh.m_positions));
+    positions = new Float32Array(flattenObject(mesh.m_positions));
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
@@ -257,8 +259,8 @@ function createMatrixTransforms(){
 
 function createLights(){
     // Actual lights of the scene
-    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,1]),100));   // 5 5 -5
-    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,0.5]),100));
+    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,1]),100,1,1,1,lights.length));
+    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,0.5]),100,1,1,1,lights.length));
     
     // Filling dummy data for up to 5 lights because the UBO / shader expects 5 max
     for(var i=0; i<max_lights; i++){

@@ -59,5 +59,6 @@ function transformLightPositions(){
     // Update position with the new mvMatrix
     for(var i=0; i<lights.length; i++){
         dataLights[i].position = mvMatrix.multiply(lights[i].position);
+        dataLights[i].intensity = lights[i].intensity;
     }
 }

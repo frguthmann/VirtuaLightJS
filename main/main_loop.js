@@ -13,6 +13,10 @@ function drawScene() {
         lastUpdateTime = Date.now();
     }
 
+    // BIND VAO
+    //gl.bindVertexArray(vertexArray);
+    
+
     // Update transforms and lights positions
     setMatrixUniforms();
     transformLightPositions();
@@ -28,6 +32,10 @@ function drawScene() {
     // Send triangles
     gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
     //mvPopMatrix();
+
+    // UNBIND IT
+    // gl.bindVertexArray(null);
+    // BIND ANOTHER VAO
 
     requestAnimationFrame(drawScene);
     stats.end();

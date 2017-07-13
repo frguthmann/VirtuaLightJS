@@ -157,6 +157,7 @@ function initBuffers() {
     verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     positions = new Float32Array(flattenObject(mesh.m_positions));
+    console.log(positions.length);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
@@ -197,7 +198,6 @@ function initUBOs(){
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create and bind light to light UBO
@@ -205,7 +205,6 @@ function initUBOs(){
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, lightData);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create material UBO and bind it to data
@@ -213,7 +212,6 @@ function initUBOs(){
     uniformPerSceneBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerSceneBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.STATIC_DRAW);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, meshMaterial);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
@@ -228,6 +226,7 @@ function initVAO(){
     var vertexArray = gl.createVertexArray();
     gl.bindVertexArray(vertexArray);
 
+    // Send vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.enableVertexAttribArray(vertexPositionAttribute);
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
@@ -302,17 +301,10 @@ function createMeshMaterial(){
 function enableLightDisplay(lightPos){
     
     var offset = mesh.m_positions.length;
-    var pos = [
-        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize])
-    ];
+    var pos = boxFromLight(lightPos);
     mesh.m_positions = mesh.m_positions.concat(pos);
+
+    console.log(mesh.m_positions.length*3);
 
     var idx = [
         $V([0 + offset,  2 + offset,  1 + offset]),      $V([2 + offset,  3 + offset,  1 + offset]),   // front
@@ -347,6 +339,8 @@ function enableLightDisplay(lightPos){
          1.0,  1.0,  1.0,  1.0 
     ];
     colors = colors.concat(col);
+
+    console.log(pos);
 }
 
 function generateColors(){
@@ -354,4 +348,17 @@ function generateColors(){
         colors.push(mesh.diffuse);
     }
     colors = flattenObject(colors);
+}
+
+function boxFromLight(lightPos){
+    return [
+        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
+        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
+        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize]),
+        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize])
+    ];
 }

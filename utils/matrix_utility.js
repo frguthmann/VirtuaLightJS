@@ -2,8 +2,6 @@ function loadIdentity() {
     mvMatrix = Matrix.I(4);
 }
 
-var mvMatrixStack = [];
-
 function multMatrix(m) {
     mvMatrix = mvMatrix.x(m);
 }
@@ -35,4 +33,10 @@ function mvRotate(angle, v) {
 
     var m = Matrix.Rotation(inRadians, $V([v[0], v[1], v[2]])).ensure4x4();
     multMatrix(m);
+}
+
+function rotateMatrixByDegree(matrix, angle, axis){
+    var inRadians = angle * Math.PI / 180.0;
+    var m = Matrix.Rotation(inRadians, $V([axis[0], axis[1], axis[2]])).ensure4x4();
+    return matrix.x(m);
 }

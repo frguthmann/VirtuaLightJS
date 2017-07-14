@@ -19,18 +19,14 @@ var nMatrix;
 var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
-
 // VAOs
 var vaos = [];
-
-// Data that might be modified from the mesh
-var positions;
 
 // Contains matrices: projection, modelView and normals
 var transforms;
 // Contains the geometry and material properties of the object
-//var mesh;
 var meshes = [];
+var entities = [];
 // Not in the mesh attribute but still necessary
 var colors = [];
 // Contains the lights of the scene
@@ -76,29 +72,29 @@ function start() {
     // Load obj file:
     //mesh = new Mesh($V([0.1,0.2,0.3,1.0]),$V([0.5,0.6,0.7]),80.0,0.1,0.91); //Mesh($V([1.0,0.766,0.336,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
-    meshes.push(new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20));
-    meshes[0].loadOFF(rhinojs);
-    meshes.push(new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20));
-    meshes[1].loadOFF(monkeyjs);
+    var mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20);
+    mesh.loadOFF(rhinojs);
+    entities.push(new Entity(mesh, "Rhino", Matrix.I(4), new MeshMaterial(mesh)));
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
+    mesh.loadOFF(monkeyjs);
+    entities.push(new Entity(mesh, "Monkey", Matrix.I(4), new MeshMaterial(mesh)));
 
     // Fill the uniform buffers
     initUBOs();
 
-    for(var i=0; i<meshes.length; i++){
+    for(var i=0; i<entities.length; i++){
         var verticesBuffer = gl.createBuffer();
         var verticesIndexBuffer = gl.createBuffer();
         var verticesNormalBuffer = gl.createBuffer();
         var verticesColorBuffer = gl.createBuffer();
-        
-        console.log(meshes);
-
+    
         // Create the colors
-        var colors = generateColors(meshes[i]);
+        var colors = generateColors(entities[i].mesh);
         console.log(colors);
         // Initiate buffers
-        initBuffers(meshes[i], verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
+        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
         // Init VAO
-        initVAO(meshes[i], i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
+        initVAO(entities[i].mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
         console.log(vaos);
     }
 
@@ -165,7 +161,7 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
 
     // Vertex Buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-    positions = new Float32Array(flattenObject(mesh.m_positions));
+    var positions = new Float32Array(flattenObject(mesh.m_positions));
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
@@ -211,10 +207,11 @@ function initUBOs(){
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
 
     // Create material UBO and bind it to data
-    var meshMaterial = createMeshMaterial();
+    var meshMaterial = new Float32Array(flattenObject(new MeshMaterial()));
     uniformPerSceneBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerSceneBuffer);
-    gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.STATIC_DRAW);
+    gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.DYNAMIC_DRAW);
+    
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
@@ -272,7 +269,7 @@ function createLights(){
     for(var i=0; i<max_lights; i++){
         if(i<lights.length){
             // Do this if you want to see a cube at the position of the lights
-            enableLightDisplay(lights[i].position.elements);
+            enableLightDisplay(lights[i].position.elements, i);
             // Update position with mvMatrix and store in dataLights
             var l = LightSource.createLightSource(lights[i]);
             l.position = mvMatrix.multiply(lights[i].position);
@@ -289,25 +286,12 @@ function createLights(){
     return floatArray;
 }
 
-function createMeshMaterial(){
-    // Create material
-    var padding = -1;
-    // Buffer is apparently 16-aligned, must pad with 2 floats => 4*1 + 3*1 + 1*3 + 1*2 padding => 12
-    var a = [
-        meshes[0].diffuse.elements,
-        meshes[0].specular.elements,
-        meshes[0].shininess,
-        meshes[0].roughness,
-        meshes[0].fresnel,
-        Math.sqrt(cubeSize*cubeSize*3),
-        padding,
-    ];
-    return new Float32Array(flattenObject(a));
-}
-
-function enableLightDisplay(lightPos){
+function enableLightDisplay(lightPos, i){
     
     var mesh = new Mesh();
+    var entity = new Entity(mesh, "Light " + i, Matrix.I(4), new MeshMaterial(mesh));
+    entities.push(entity);
+
     var pos = boxFromLight(lightPos);
     mesh.m_positions = mesh.m_positions.concat(pos);
 
@@ -344,9 +328,6 @@ function enableLightDisplay(lightPos){
          1.0,  1.0,  1.0,  1.0 
     ];
     colors = colors.concat(col);
-
-    meshes.push(mesh);
-    //console.log(meshes);
 }
 
 function generateColors(mesh){

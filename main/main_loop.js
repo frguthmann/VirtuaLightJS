@@ -6,45 +6,58 @@ function drawScene() {
     stats.begin();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    //mvPushMatrix();
-    if(isRotating == true){
-        rotateTheCamera();    
-    }else{
-        lastUpdateTime = Date.now();
+    /* 
+        mvMatrix contains the position of the camera
+        move the camera here
+    */
+
+    if(camera.shouldSetup){
+        camera.setup();
+        camera.shouldSetup = false;
     }
 
-    // BIND VAO
+    // Compute light positions relative to this camera
+    transformLightPositions();
+    // Pushing the lights UBO with updated coordinates
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(dataLights)));
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
-    console.log(vaos.length);
-    for(var i=0; i<1; i++){
-
-        gl.bindVertexArray(vaos[i]);
+    for(var i=0; i<vaos.length; i++){
         
-        // Update transforms and lights positions
+        // The mvMatrix will be changed for each object, we need to store the original state
+        mvPushMatrix();
+
+        if(i==0){
+            if(isRotating == true){
+                rotateTheObject(); 
+            }else{
+                lastUpdateTime = Date.now();
+            }
+        }
+
+        // Update transforms according to mvMatrix
         setMatrixUniforms();
-        transformLightPositions();
 
-        // Updating UBOs before drawing
-        // TODO: Do not update the projection matrix, it never changes
+        // Updating transforms UBOs before drawing: projection matrix not updated, it's never changed
         gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
-        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
+        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms, 0, transforms.length*(2.0/3.0));
 
-        gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
-        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(dataLights)));
-
-        // Send triangles
+        // Bind VAO
+        gl.bindVertexArray(vaos[i]);
+        // Draw triangles
         gl.drawElements(gl.TRIANGLES, meshes[i].m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
-        //mvPopMatrix();
-
         // UNBIND VAO
         gl.bindVertexArray(null);
+
+        mvPopMatrix();
     }
 
     requestAnimationFrame(drawScene);
     stats.end();
 }
 
-function rotateTheCamera(){
+function rotateTheObject(){
     var currentTime = Date.now();
     if (lastUpdateTime) {
         var delta = currentTime - lastUpdateTime;
@@ -54,8 +67,10 @@ function rotateTheCamera(){
     }
 
     if(delta > 0 ){
-        //mvRotate(cubeRotation, [0, 1, 0]);
-        camera.rotateByAngle(0,-cubeRotation*0.01);
+        //console.log("Rotating", mvMatrix);
+        mvRotate(cubeRotation, [0, 1, 0]);
+        //console.log("Rotated", mvMatrix);
+        //camera.rotateByAngle(0,-cubeRotation*0.01);
         lastUpdateTime = currentTime;
     }
 }
@@ -63,7 +78,7 @@ function rotateTheCamera(){
 function setMatrixUniforms() {
     nMatrix = mvMatrix.inverse();
     nMatrix = nMatrix.transpose();
-    transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
+    transforms = new Float32Array((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten()));
 }
 
 function transformLightPositions(){

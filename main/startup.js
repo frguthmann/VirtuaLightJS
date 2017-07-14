@@ -78,11 +78,13 @@ function start() {
     //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     meshes.push(new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20));
     meshes[0].loadOFF(rhinojs);
+    meshes.push(new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20));
+    meshes[1].loadOFF(monkeyjs);
 
     // Fill the uniform buffers
     initUBOs();
 
-    for(var i=0; i<1; i++){
+    for(var i=0; i<meshes.length; i++){
         var verticesBuffer = gl.createBuffer();
         var verticesIndexBuffer = gl.createBuffer();
         var verticesNormalBuffer = gl.createBuffer();
@@ -95,7 +97,6 @@ function start() {
         console.log(colors);
         // Initiate buffers
         initBuffers(meshes[i], verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
-        console.log(colors);
         // Init VAO
         initVAO(meshes[i], i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
         console.log(vaos);
@@ -202,14 +203,12 @@ function initUBOs(){
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create and bind light to light UBO
     var lightData = createLights();
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create material UBO and bind it to data
     var meshMaterial = createMeshMaterial();
@@ -222,11 +221,9 @@ function initUBOs(){
 function initVAO(mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer){
 
     // Create buffer location attributes
-    vertexPositionAttribute = 3*i;
-    vertexNormalAttribute = 3*i+1;
-    vertexColorAttribute = 3*i+2;
-
-    console.log(vertexPositionAttribute, vertexNormalAttribute, vertexColorAttribute);
+    vertexPositionAttribute = 0;
+    vertexNormalAttribute   = 1;
+    vertexColorAttribute    = 2;
 
     // Fill VAO with the right calls
     var vertexArray = gl.createVertexArray();
@@ -247,9 +244,10 @@ function initVAO(mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuf
     gl.enableVertexAttribArray(vertexColorAttribute); 
     gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    // Send indexes
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
 
+    // Bind UBOs
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 2, uniformPerSceneBuffer);
@@ -261,8 +259,8 @@ function initVAO(mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuf
 function createMatrixTransforms(){
     pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
     nMatrix  = Matrix.I(4);
-    // pMatrix + mvMatrix + nMatrix
-    transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
+    // mvMatrix + nMatrix + pMatrix
+    transforms = new Float32Array((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten()));
 }
 
 function createLights(){

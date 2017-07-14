@@ -10,6 +10,7 @@ class Camera {
         this.camTargetX = 0.0;
         this.camTargetY = 0.0;
         this.camTargetZ = 0.0;
+        this.shouldSetup = false;
         this.setup();
     }
 
@@ -27,7 +28,7 @@ class Camera {
         this.camTargetY += 0.01*(myY*(dY));
         this.camTargetZ += 0.01*(mzX*(dX) + mzY*(dY));
 
-        this.setup();
+        this.shouldSetup = true;
     }
 
     rotateByMouse(dX, dY){
@@ -39,7 +40,7 @@ class Camera {
         if(this.camTheta > Math.PI - 0.0001){
             this.camTheta = Math.PI - 0.0001;
         }
-        this.setup();
+        this.shouldSetup = true;
     }
 
     setup() {
@@ -56,7 +57,7 @@ class Camera {
 
     zoom(step){
         this.camDist2Target = Math.max(1,this.camDist2Target+step);
-        this.setup();
+        this.shouldSetup = true;
     }
 
     polar2Cartesian(theta, phi, r, pos) {
@@ -68,6 +69,6 @@ class Camera {
     rotateByAngle(phi, pheta){
         this.camPhi+=pheta;
         this.camTheta+=phi;
-        this.setup();
+        this.shouldSetup = true;
     }
 }

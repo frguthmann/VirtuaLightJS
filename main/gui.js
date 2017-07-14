@@ -45,12 +45,12 @@ function updateLightPos(lightPos, value){
     //console.log(pos);
     //gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(flattenObject(mesh.m_positions)));
 
-    var offset = mesh.m_positions.length*3 - 3*8;
+    //var offset = mesh.m_positions.length*3 - 3*8;
     var pos = new Float32Array(flattenObject(boxFromLight(lightPos)));
     console.log(pos);
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
+    /*gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, offset, pos);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);*/
 }
 
 // Works but is an absolute performance disaster

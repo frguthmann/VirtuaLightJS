@@ -14,28 +14,31 @@ function drawScene() {
     }
 
     // BIND VAO
-    //gl.bindVertexArray(vertexArray);
-    
 
-    // Update transforms and lights positions
-    setMatrixUniforms();
-    transformLightPositions();
+    console.log(vaos.length);
+    for(var i=0; i<1; i++){
 
-    // Updating UBOs before drawing
-    // TODO: Do not update the projection matrix, it never changes
-    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
+        gl.bindVertexArray(vaos[i]);
+        
+        // Update transforms and lights positions
+        setMatrixUniforms();
+        transformLightPositions();
 
-    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(dataLights)));
+        // Updating UBOs before drawing
+        // TODO: Do not update the projection matrix, it never changes
+        gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
+        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
 
-    // Send triangles
-    gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
-    //mvPopMatrix();
+        gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
+        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(dataLights)));
 
-    // UNBIND IT
-    // gl.bindVertexArray(null);
-    // BIND ANOTHER VAO
+        // Send triangles
+        gl.drawElements(gl.TRIANGLES, meshes[i].m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
+        //mvPopMatrix();
+
+        // UNBIND VAO
+        gl.bindVertexArray(null);
+    }
 
     requestAnimationFrame(drawScene);
     stats.end();

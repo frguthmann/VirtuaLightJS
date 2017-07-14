@@ -15,16 +15,13 @@ var mvMatrix;
 // Normal matrix
 var nMatrix;
 
-// VBOS
-var verticesBuffer;
-var verticesIndexBuffer;
-var verticesColorBuffer;
-var verticesNormalBuffer;
-
 // UBOS
 var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
+
+// VAOs
+var vaos = [];
 
 // Data that might be modified from the mesh
 var positions;
@@ -32,7 +29,8 @@ var positions;
 // Contains matrices: projection, modelView and normals
 var transforms;
 // Contains the geometry and material properties of the object
-var mesh;
+//var mesh;
+var meshes = [];
 // Not in the mesh attribute but still necessary
 var colors = [];
 // Contains the lights of the scene
@@ -78,19 +76,30 @@ function start() {
     // Load obj file:
     //mesh = new Mesh($V([0.1,0.2,0.3,1.0]),$V([0.5,0.6,0.7]),80.0,0.1,0.91); //Mesh($V([1.0,0.766,0.336,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
-    mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20)
-    mesh.loadOFF(rhinojs);
-    // Have to do this here because we use it later
-    generateColors();
+    meshes.push(new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20));
+    meshes[0].loadOFF(rhinojs);
 
     // Fill the uniform buffers
     initUBOs();
 
-    // Initiate buffers
-    initBuffers();
+    for(var i=0; i<1; i++){
+        var verticesBuffer = gl.createBuffer();
+        var verticesIndexBuffer = gl.createBuffer();
+        var verticesNormalBuffer = gl.createBuffer();
+        var verticesColorBuffer = gl.createBuffer();
+        
+        console.log(meshes);
 
-    // Init VAO
-    initVAO();
+        // Create the colors
+        var colors = generateColors(meshes[i]);
+        console.log(colors);
+        // Initiate buffers
+        initBuffers(meshes[i], verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
+        console.log(colors);
+        // Init VAO
+        initVAO(meshes[i], i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
+        console.log(vaos);
+    }
 
     // Display GUI
     initGui();
@@ -151,32 +160,27 @@ function createShader(gl, source, type) {
     return shader;
 }
 
-function initBuffers() {
+function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors) {
 
     // Vertex Buffer
-    verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     positions = new Float32Array(flattenObject(mesh.m_positions));
-    console.log(positions.length);
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Index buffer
-    verticesIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
     var triangles = new Uint16Array(flattenObject(mesh.m_triangles));
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Normals Buffer
-    verticesNormalBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
     var normals = new Float32Array(flattenObject(mesh.m_normals));
     gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Color Buffer
-    verticesColorBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     var col = new Float32Array(colors);
     gl.bufferData(gl.ARRAY_BUFFER, col, gl.STATIC_DRAW);
@@ -215,12 +219,14 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function initVAO(){
+function initVAO(mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer){
 
     // Create buffer location attributes
-    vertexPositionAttribute = 0;
-    vertexNormalAttribute = 1;
-    vertexColorAttribute = 2; 
+    vertexPositionAttribute = 3*i;
+    vertexNormalAttribute = 3*i+1;
+    vertexColorAttribute = 3*i+2;
+
+    console.log(vertexPositionAttribute, vertexNormalAttribute, vertexColorAttribute);
 
     // Fill VAO with the right calls
     var vertexArray = gl.createVertexArray();
@@ -247,6 +253,9 @@ function initVAO(){
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 2, uniformPerSceneBuffer);
+
+    gl.bindVertexArray(null);
+    vaos.push(vertexArray);
 }
 
 function createMatrixTransforms(){
@@ -287,11 +296,11 @@ function createMeshMaterial(){
     var padding = -1;
     // Buffer is apparently 16-aligned, must pad with 2 floats => 4*1 + 3*1 + 1*3 + 1*2 padding => 12
     var a = [
-        mesh.diffuse.elements,
-        mesh.specular.elements,
-        mesh.shininess,
-        mesh.roughness,
-        mesh.fresnel,
+        meshes[0].diffuse.elements,
+        meshes[0].specular.elements,
+        meshes[0].shininess,
+        meshes[0].roughness,
+        meshes[0].fresnel,
         Math.sqrt(cubeSize*cubeSize*3),
         padding,
     ];
@@ -300,19 +309,17 @@ function createMeshMaterial(){
 
 function enableLightDisplay(lightPos){
     
-    var offset = mesh.m_positions.length;
+    var mesh = new Mesh();
     var pos = boxFromLight(lightPos);
     mesh.m_positions = mesh.m_positions.concat(pos);
 
-    console.log(mesh.m_positions.length*3);
-
     var idx = [
-        $V([0 + offset,  2 + offset,  1 + offset]),      $V([2 + offset,  3 + offset,  1 + offset]),   // front
-        $V([4 + offset,  5 + offset,  6 + offset]),      $V([5 + offset,  7 + offset,  6 + offset]),   // back
-        $V([4 + offset,  0 + offset,  5 + offset]),      $V([0 + offset,  1 + offset,  5 + offset]),   // top
-        $V([6 + offset,  7 + offset,  2 + offset]),      $V([7 + offset,  3 + offset,  2 + offset]),   // bottom
-        $V([6 + offset,  0 + offset,  4 + offset]),      $V([6 + offset,  2 + offset,  0 + offset]),   // right
-        $V([5 + offset,  1 + offset,  7 + offset]),      $V([1 + offset,  3 + offset,  7 + offset])    // left*/
+        $V([0,  2,  1]),      $V([2,  3,  1]),   // front
+        $V([4,  5,  6]),      $V([5,  7,  6]),   // back
+        $V([4,  0,  5]),      $V([0,  1,  5]),   // top
+        $V([6,  7,  2]),      $V([7,  3,  2]),   // bottom
+        $V([6,  0,  4]),      $V([6,  2,  0]),   // right
+        $V([5,  1,  7]),      $V([1,  3,  7])    // left*/
     ];
     mesh.m_triangles = mesh.m_triangles.concat(idx);
 
@@ -340,14 +347,16 @@ function enableLightDisplay(lightPos){
     ];
     colors = colors.concat(col);
 
-    console.log(pos);
+    meshes.push(mesh);
+    //console.log(meshes);
 }
 
-function generateColors(){
+function generateColors(mesh){
+    var col = [];
     for(var i=0; i<mesh.m_positions.length; i++){
-        colors.push(mesh.diffuse);
+        col.push(mesh.diffuse);
     }
-    colors = flattenObject(colors);
+    return flattenObject(col);
 }
 
 function boxFromLight(lightPos){

@@ -27,7 +27,6 @@ function getCoords(e) {
 
     if(isMouseLDown){
         camera.rotateByMouse(dX,dY);
-        lastUpdateTime = Date.now() + 2000;
     }else if(isMouseRDown){
         camera.translateByMouse(dX,dY);
     }
@@ -39,7 +38,6 @@ function mouseDown(e) {
     switch(e.button){
         case 0:
             isMouseLDown = true;
-            lastUpdateTime = Date.now() + 2000;
             break;
         case 2:
             isMouseRDown = true;

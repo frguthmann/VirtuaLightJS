@@ -9,6 +9,7 @@ function initGui() {
     
     // Let's create the menu for meshes / objects
     var f1 = gui.addFolder("Objects");
+    f1.open();
     for(var i=0; i<entities.length-lights.length; i++){
         
         // Add a folder with the name of the entity
@@ -17,6 +18,7 @@ function initGui() {
         entities[i].pos   = [0,0,0];
         entities[i].rot   = [0,0];
         entities[i].scale = 1;
+        entities[i].isRotating = false;
 
         /*  
             Immediately Invoked Function Expression (IIFE)
@@ -37,6 +39,7 @@ function initGui() {
             f32.add(entities[i].rot, 1, 0, 360).name('Theta').onChange(launchMatrixUpdate);
 
             f2.add(entities[i], "scale", 0.0001, 5).name('Scale').onChange(launchMatrixUpdate);
+            f2.add(entities[i], "isRotating").name('Rotation');
 
             function launchMatrixUpdate(){
                 var idx = i;
@@ -47,7 +50,8 @@ function initGui() {
 
     }
 
-    var f1 = gui.addFolder("Lights"); 
+    var f1 = gui.addFolder("Lights");
+    f1.open();
     for(var i=entities.length-lights.length; i<entities.length; i++){
 
         var idx = i - (entities.length - lights.length);
@@ -77,11 +81,8 @@ function initGui() {
         
 
         f2.add(lights[idx], 'intensity', 0, 150).name('Intensity');
-        f2.open();
-        f31.open();
     }
 
-    //gui.close();
 };
 
 function initFPSCounter(){

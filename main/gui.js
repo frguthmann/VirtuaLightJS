@@ -96,7 +96,7 @@ function initGui() {
         }else if(value == 'Wireframe'){
             scene.mode = gl.LINES;
         }
-    });
+    }).listen();
 
 };
 
@@ -106,4 +106,5 @@ function updateObjectMVMatrix(idx){
     var rotTheta  = Matrix.Rotation(entities[idx].rot[1] * Math.PI / 180.0, $V([1,0,0])).ensure4x4();
     var scale     = Matrix.Diagonal([entities[idx].scale, entities[idx].scale, entities[idx].scale, 1]);
     entities[idx].mvMatrix = trans.x(rotTheta).x(rotPhi).x(scale).x(Matrix.I(4));
+    console.log(entities[idx].mvMatrix);
 }

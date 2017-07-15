@@ -72,14 +72,30 @@ function start() {
     // Load obj file:
     //mesh = new Mesh($V([0.1,0.2,0.3,1.0]),$V([0.5,0.6,0.7]),80.0,0.1,0.91); //Mesh($V([1.0,0.766,0.336,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
+    
+    // Load and transform the rhino object
     var mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20);
     mesh.loadOFF(rhinojs);
-    entities.push(new Entity(mesh, "Rhino", Matrix.I(4), new MeshMaterial(mesh)));
+    var mvMat = $M([
+        [0, 0, 1, 0.92],
+        [0, 1, 0, -0.5],
+        [-1, 0, 0, 0],
+        [0, 0, 0, 1]
+    ]);
+    entities.push(new Entity(mesh, "Rhino", mvMat, new MeshMaterial(mesh)));
     
+    // Load and transform the man object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
-    mesh.loadOFF(monkeyjs);
-    entities.push(new Entity(mesh, "Monkey", Matrix.I(4), new MeshMaterial(mesh)));
+    mesh.loadOFF(manjs);
+    mvMat = $M([
+        [ -0.45, 0, 0, -0.59],
+        [0, 0.45, 0, -0.32],
+        [0, 0, -0.4490562686784046, 0],
+        [0, 0, 0, 1]
+    ]);
+    entities.push(new Entity(mesh, "Man", mvMat, new MeshMaterial(mesh)));
 
+    // Create a plan underneath both objects
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.95,0.10);
     mesh.createPlan(3.0, 50);
     entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));

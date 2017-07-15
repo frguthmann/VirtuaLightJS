@@ -71,8 +71,10 @@ function keyboardHandler(e) {
         case 87:
             if(scene.mode == gl.TRIANGLES){
                 scene.mode = gl.LINES;
+                guiObj.sceneMode = "Wireframe";
             }else{
                 scene.mode = gl.TRIANGLES;
+                guiObj.sceneMode = "Normal";
             }
         break;
         default:

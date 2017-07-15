@@ -287,7 +287,7 @@ function createLights(){
 function enableLightDisplay(lightPos, i){
     
     var mesh = new Mesh();
-    var entity = new Entity(mesh, "Light " + i, Matrix.I(4), new MeshMaterial(mesh));
+    var entity = new Entity(mesh, "Light " + i, Matrix.Translation(Vector.create(lightPos)), new MeshMaterial(mesh));
     entities.push(entity);
 
     var pos = boxFromLight(lightPos);
@@ -338,13 +338,13 @@ function generateColors(mesh){
 
 function boxFromLight(lightPos){
     return [
-        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize])
+        $V([ cubeSize,  cubeSize, -cubeSize]),
+        $V([-cubeSize,  cubeSize, -cubeSize]),
+        $V([ cubeSize, -cubeSize, -cubeSize]),
+        $V([-cubeSize, -cubeSize, -cubeSize]),
+        $V([ cubeSize,  cubeSize,  cubeSize]),
+        $V([-cubeSize,  cubeSize,  cubeSize]),
+        $V([ cubeSize, -cubeSize,  cubeSize]),
+        $V([-cubeSize, -cubeSize,  cubeSize])
     ];
 }

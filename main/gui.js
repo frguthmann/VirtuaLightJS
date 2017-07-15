@@ -28,23 +28,19 @@ function initGui() {
         (function(i) {
 
             var f31 = f2.addFolder('Position');
-            f31.add(entities[i].pos, 0, -5, 5).name('Pos X').onChange(updateMVMatrix);
-            f31.add(entities[i].pos, 1, -5, 5).name('Pos Y').onChange(updateMVMatrix);
-            f31.add(entities[i].pos, 2, -5, 5).name('Pos Z').onChange(updateMVMatrix);
+            f31.add(entities[i].pos, 0, -5, 5).name('Pos X').onChange(launchMatrixUpdate);
+            f31.add(entities[i].pos, 1, -5, 5).name('Pos Y').onChange(launchMatrixUpdate);
+            f31.add(entities[i].pos, 2, -5, 5).name('Pos Z').onChange(launchMatrixUpdate);
 
             var f32 = f2.addFolder('Rotation');
-            f32.add(entities[i].rot, 0, 0, 360).name('Phi').onChange(updateMVMatrix);
-            f32.add(entities[i].rot, 1, 0, 360).name('Theta').onChange(updateMVMatrix);
+            f32.add(entities[i].rot, 0, 0, 360).name('Phi').onChange(launchMatrixUpdate).listen();
+            f32.add(entities[i].rot, 1, 0, 360).name('Theta').onChange(launchMatrixUpdate);
 
-            f2.add(entities[i], "scale", 0.0001, 5).name('Scale').onChange(updateMVMatrix);
+            f2.add(entities[i], "scale", 0.0001, 5).name('Scale').onChange(launchMatrixUpdate);
 
-            function updateMVMatrix(){
+            function launchMatrixUpdate(){
                 var idx = i;
-                var trans     = Matrix.Translation(Vector.create(entities[idx].pos));
-                var rotPhi    = Matrix.Rotation(entities[idx].rot[0] * Math.PI / 180.0, $V([0,1,0])).ensure4x4();
-                var rotTheta  = Matrix.Rotation(entities[idx].rot[1] * Math.PI / 180.0, $V([1,0,0])).ensure4x4();
-                var scale     = Matrix.Diagonal([entities[idx].scale, entities[idx].scale, entities[idx].scale, 1]);
-                entities[idx].mvMatrix = trans.x(rotTheta).x(rotPhi).x(scale).x(Matrix.I(4));
+                updateMVMatrix(idx);
             }
 
         }(i));
@@ -61,16 +57,14 @@ function initGui() {
         var f31 = f2.addFolder('Position');
 
         (function(idx) {
-            f31.add(lights[idx].position.elements, 0, -15, 15).name('Pos X').onChange(updateMVMatrix);
-            f31.add(lights[idx].position.elements, 1, -15, 15).name('Pos Y').onChange(updateMVMatrix);
-            f31.add(lights[idx].position.elements, 2, -15, 15).name('Pos Z').onChange(updateMVMatrix);
+            f31.add(lights[idx].position.elements, 0, -15, 15).name('Pos X').onChange(launchMatrixUpdate);
+            f31.add(lights[idx].position.elements, 1, -15, 15).name('Pos Y').onChange(launchMatrixUpdate);
+            f31.add(lights[idx].position.elements, 2, -15, 15).name('Pos Z').onChange(launchMatrixUpdate);
 
-            function updateMVMatrix(){
+            function launchMatrixUpdate(){
                 var lidx = idx;
                 var eidx = idx + lights.length;
-                var lpos = lights[lidx].position.elements;
-                var trans = Matrix.Translation(Vector.create([lpos[0],lpos[1],lpos[2]]));
-                console.log(lpos);
+                var trans = Matrix.Translation(lights[lidx].position);
                 entities[eidx].mvMatrix = trans.x(Matrix.I(4));
             }
 
@@ -96,28 +90,10 @@ function initFPSCounter(){
     document.body.appendChild( stats.dom );
 }
 
-function updateLightPos(lightPos, value){
-    /*console.log(mesh.m_positions.length*3);
-    console.log(lightPos, value);*/
-    //console.log(offset, positions.length);
-    //console.log();
-    //console.log(pos);
-    //gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(flattenObject(mesh.m_positions)));
-
-    //var offset = mesh.m_positions.length*3 - 3*8;
-    /*var pos = new Float32Array(flattenObject(boxFromLight(lightPos)));
-    console.log(pos);*/
-    /*gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-    gl.bufferSubData(gl.ARRAY_BUFFER, offset, pos);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);*/
+function updateMVMatrix(idx){
+    var trans     = Matrix.Translation(Vector.create(entities[idx].pos));
+    var rotPhi    = Matrix.Rotation(entities[idx].rot[0] * Math.PI / 180.0, $V([0,1,0])).ensure4x4();
+    var rotTheta  = Matrix.Rotation(entities[idx].rot[1] * Math.PI / 180.0, $V([1,0,0])).ensure4x4();
+    var scale     = Matrix.Diagonal([entities[idx].scale, entities[idx].scale, entities[idx].scale, 1]);
+    entities[idx].mvMatrix = trans.x(rotTheta).x(rotPhi).x(scale).x(Matrix.I(4));
 }
-
-// Works but is an absolute performance disaster
-/*
-gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-var pos = boxFromLight(lightPos);
-for(var i=0; i<pos.length; i++){
-    mesh.m_positions[mesh.m_positions.length-i-1] = pos[pos.length-1-i];
-}
-gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(flattenObject(mesh.m_positions)));
-*/

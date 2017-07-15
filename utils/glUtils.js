@@ -8,7 +8,7 @@ Matrix.Translation = function (v)
         return r;
     }
 
-    if (v.elements.length == 3) {
+    if (v.elements.length == 3 || v.elements.length == 4) {
         var r = Matrix.I(4);
         r.elements[0][3] = v.elements[0];
         r.elements[1][3] = v.elements[1];

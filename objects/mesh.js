@@ -98,4 +98,24 @@ class Mesh {
         //console.log(this.m_normals);
     }
 
+    createPlan(scale, res){
+
+        var cpt = 0;
+        // Let's generate res * res vertices
+        for(var i=0; i<res; i++){
+            for(var j=0; j<res; j++){
+                // Trust me I'm an engineer, it works.
+                this.m_positions[res*i+j] = $V([-scale + 2.0*scale*i/(res-1.0),-1.25,-scale + 2.0*scale*j/(res-1.0)]);
+                // We need (res-1)*(res-1)*2 triangles
+                if(i<res-1 && j<res-1){
+                    this.m_triangles[2*cpt] = $V([res*i+j, res*i+j+1, res*(i+1)+j+1]);
+                    this.m_triangles[2*cpt+1] = $V([res*i+j, res*(i+1)+j+1, res*(i+1)+j]);
+                    cpt++;
+                }
+            }
+        }
+
+        this.recomputeNormalsSimple();
+    }
+
 }

@@ -1,6 +1,12 @@
 // FPS counter
 var stats;
-var id;
+var guiObj = { sceneMode : "Normal" };
+
+function initFPSCounter(){
+    stats = new Stats();
+    stats.showPanel( 0 );
+    document.body.appendChild( stats.dom );
+}
 
 function initGui() {
     initFPSCounter();
@@ -27,6 +33,7 @@ function initGui() {
             Each slider has its own updateMVMatrix function with the right index :D
             Honnestly it's a shame I can't avoid this trick because of dat.gui...
         */
+
         (function(i) {
 
             var f31 = f2.addFolder('Position');
@@ -43,7 +50,7 @@ function initGui() {
 
             function launchMatrixUpdate(){
                 var idx = i;
-                updateMVMatrix(idx);
+                updateObjectMVMatrix(idx);
             }
 
         }(i));
@@ -61,11 +68,11 @@ function initGui() {
         var f31 = f2.addFolder('Position');
 
         (function(idx) {
-            f31.add(lights[idx].position.elements, 0, -15, 15).name('Pos X').onChange(launchMatrixUpdate);
-            f31.add(lights[idx].position.elements, 1, -15, 15).name('Pos Y').onChange(launchMatrixUpdate);
-            f31.add(lights[idx].position.elements, 2, -15, 15).name('Pos Z').onChange(launchMatrixUpdate);
+            f31.add(lights[idx].position.elements, 0, -15, 15).name('Pos X').onChange(updateLightMVMatrix);
+            f31.add(lights[idx].position.elements, 1, -15, 15).name('Pos Y').onChange(updateLightMVMatrix);
+            f31.add(lights[idx].position.elements, 2, -15, 15).name('Pos Z').onChange(updateLightMVMatrix);
 
-            function launchMatrixUpdate(){
+            function updateLightMVMatrix(){
                 var lidx = idx;
                 var eidx = idx + lights.length;
                 var trans = Matrix.Translation(lights[lidx].position);
@@ -83,15 +90,17 @@ function initGui() {
         f2.add(lights[idx], 'intensity', 0, 150).name('Intensity');
     }
 
+    gui.add(guiObj, 'sceneMode', [ 'Normal', 'Wireframe']).name("Render Mode (W)").onChange(function(value){
+        if(value == 'Normal'){
+            scene.mode = gl.TRIANGLES;
+        }else if(value == 'Wireframe'){
+            scene.mode = gl.LINES;
+        }
+    });
+
 };
 
-function initFPSCounter(){
-    stats = new Stats();
-    stats.showPanel( 0 );
-    document.body.appendChild( stats.dom );
-}
-
-function updateMVMatrix(idx){
+function updateObjectMVMatrix(idx){
     var trans     = Matrix.Translation(Vector.create(entities[idx].pos));
     var rotPhi    = Matrix.Rotation(entities[idx].rot[0] * Math.PI / 180.0, $V([0,1,0])).ensure4x4();
     var rotTheta  = Matrix.Rotation(entities[idx].rot[1] * Math.PI / 180.0, $V([1,0,0])).ensure4x4();

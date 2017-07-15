@@ -75,9 +75,14 @@ function start() {
     var mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20);
     mesh.loadOFF(rhinojs);
     entities.push(new Entity(mesh, "Rhino", Matrix.I(4), new MeshMaterial(mesh)));
+    
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
     mesh.loadOFF(monkeyjs);
     entities.push(new Entity(mesh, "Monkey", Matrix.I(4), new MeshMaterial(mesh)));
+
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.95,0.10);
+    mesh.createPlan(3.0, 50);
+    entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));
 
     // Fill the uniform buffers
     initUBOs();

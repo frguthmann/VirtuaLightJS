@@ -68,6 +68,13 @@ function keyboardHandler(e) {
         case 82:
             isRotating = !isRotating;
         break;
+        case 87:
+            if(scene.mode == gl.TRIANGLES){
+                scene.mode = gl.LINES;
+            }else{
+                scene.mode = gl.TRIANGLES;
+            }
+        break;
         default:
             console.log("You pressed: " + e.keyCode);
         break;

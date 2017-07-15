@@ -1,5 +1,4 @@
-var objRotation = 0.0;
-var mvMatrixStack = [];
+var scene = {mode : 4, mvMatrixStack : []};
 
 function drawScene() {
     stats.begin();
@@ -36,7 +35,7 @@ function drawScene() {
         // Bind VAO
         gl.bindVertexArray(vaos[i]);
         // Draw triangles
-        gl.drawElements(gl.TRIANGLES, entities[i].mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(scene.mode, entities[i].mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
         // UNBIND VAO
         gl.bindVertexArray(null);
 
@@ -52,13 +51,13 @@ function rotateEntity(i){
     var currentTime = Date.now();
     if (entities[i].lastUpdateTime) {
         var delta = currentTime - entities[i].lastUpdateTime;
-        objRotation = (60 * delta) / 1000.0;
+        var objRotation = (60 * delta) / 1000.0;
     }else{
        entities[i].lastUpdateTime = currentTime; 
     }
     if(delta > 0 ){
         entities[i].rot[0] = (entities[i].rot[0] + objRotation) % 360;
-        updateMVMatrix(i);
+        updateObjectMVMatrix(i);
         entities[i].lastUpdateTime = currentTime;
     }
 }

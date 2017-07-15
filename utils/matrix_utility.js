@@ -12,19 +12,19 @@ function mvTranslate(v) {
 
 function mvPushMatrix(m) {
     if (m) {
-        mvMatrixStack.push(m.dup());
+        scene.mvMatrixStack.push(m.dup());
         mvMatrix = m.dup();
     } else {
-        mvMatrixStack.push(mvMatrix.dup());
+        scene.mvMatrixStack.push(mvMatrix.dup());
     }
 }
 
 function mvPopMatrix() {
-    if (!mvMatrixStack.length) {
+    if (!scene.mvMatrixStack.length) {
         throw('Can\'t pop from an empty matrix stack.');
     }
   
-    mvMatrix = mvMatrixStack.pop();
+    mvMatrix = scene.mvMatrixStack.pop();
     return mvMatrix;
 }
 

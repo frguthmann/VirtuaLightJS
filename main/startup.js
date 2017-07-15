@@ -90,12 +90,10 @@ function start() {
     
         // Create the colors
         var colors = generateColors(entities[i].mesh);
-        console.log(colors);
         // Initiate buffers
         initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
         // Init VAO
         initVAO(entities[i].mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
-        console.log(vaos);
     }
 
     // Display GUI

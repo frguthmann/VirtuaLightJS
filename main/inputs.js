@@ -74,4 +74,5 @@ function keyboardHandler(e) {
             console.log("You pressed: " + e.keyCode);
         break;
     }
+    return false;
 }

@@ -1,4 +1,4 @@
-var cubeRotation = 0.0;
+var objRotation = 0.0;
 var lastUpdateTime = null;
 var isRotating = true;
 var mvMatrixStack = [];
@@ -22,11 +22,11 @@ function drawScene() {
         // The mvMatrix will be changed for each object, we need to store the original state
         mvPushMatrix();
 
-        if(isRotating == true){
+        /*if(isRotating == true){
             rotateEntity(entities[0]); 
         }else{
             lastUpdateTime = Date.now();
-        }
+        }*/
 
         // Update material for mesh
         updateMeshMaterialUniform(i);
@@ -53,13 +53,14 @@ function rotateEntity(entity){
     var currentTime = Date.now();
     if (lastUpdateTime) {
         var delta = currentTime - lastUpdateTime;
-        cubeRotation = (60 * delta) / 1000.0;
+        objRotation = (60 * delta) / 1000.0;
     }else{
        lastUpdateTime = currentTime; 
     }
 
     if(delta > 0 ){
-        entity.mvMatrix = rotateMatrixByDegree(entity.mvMatrix, cubeRotation, [0, 1, 0]);
+        console.log(objRotation);
+        entity.mvMatrix = rotateMatrixByDegree(entity.mvMatrix, objRotation, [0, 1, 0]);
         lastUpdateTime = currentTime;
     }
 }

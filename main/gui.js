@@ -62,8 +62,6 @@ function initGui() {
     for(var i=entities.length-lights.length; i<entities.length; i++){
 
         var idx = i - (entities.length - lights.length);
-        //console.log(entities[i].mesh.m_positions);
-
         var f2 = f1.addFolder(entities[i].name);
         var f31 = f2.addFolder('Position');
 

@@ -27,7 +27,6 @@ function getCoords(e) {
 
     if(isMouseLDown){
         camera.rotateByMouse(dX,dY);
-        autoRotation.lastUpdateTime = Date.now() + 2000;
     }else if(isMouseRDown){
         camera.translateByMouse(dX,dY);
     }
@@ -39,7 +38,6 @@ function mouseDown(e) {
     switch(e.button){
         case 0:
             isMouseLDown = true;
-            autoRotation.lastUpdateTime = Date.now() + 2000;
             break;
         case 2:
             isMouseRDown = true;
@@ -70,8 +68,18 @@ function keyboardHandler(e) {
         case 82:
             autoRotation.isRotating = !autoRotation.isRotating;
         break;
+        case 87:
+            if(scene.mode == gl.TRIANGLES){
+                scene.mode = gl.LINES;
+                guiObj.sceneMode = "Wireframe";
+            }else{
+                scene.mode = gl.TRIANGLES;
+                guiObj.sceneMode = "Normal";
+            }
+        break;
         default:
             console.log("You pressed: " + e.keyCode);
         break;
     }
+    return false;
 }

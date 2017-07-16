@@ -7,9 +7,9 @@ layout(std140, column_major) uniform;
 
 struct Transform
 {
-    mat4 uPMatrix;
     mat4 uMVMatrix;
     mat4 uNormalMatrix;
+    mat4 uPMatrix;
 };
 
 uniform PerDraw

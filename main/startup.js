@@ -15,24 +15,18 @@ var mvMatrix;
 // Normal matrix
 var nMatrix;
 
-// VBOS
-var verticesBuffer;
-var verticesIndexBuffer;
-var verticesColorBuffer;
-var verticesNormalBuffer;
-
 // UBOS
 var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
-
-// Data that might be modified from the mesh
-var positions;
+// VAOs
+var vaos = [];
 
 // Contains matrices: projection, modelView and normals
 var transforms;
 // Contains the geometry and material properties of the object
-var mesh;
+var meshes = [];
+var entities = [];
 // Not in the mesh attribute but still necessary
 var colors = [];
 // Contains the lights of the scene
@@ -78,19 +72,50 @@ function start() {
     // Load obj file:
     //mesh = new Mesh($V([0.1,0.2,0.3,1.0]),$V([0.5,0.6,0.7]),80.0,0.1,0.91); //Mesh($V([1.0,0.766,0.336,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
-    mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20)
+    
+    // Load and transform the rhino object
+    var mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20);
     mesh.loadOFF(rhinojs);
-    // Have to do this here because we use it later
-    generateColors();
+    var mvMat = $M([
+        [0, 0, 1, 0.92],
+        [0, 1, 0, -0.5],
+        [-1, 0, 0, 0],
+        [0, 0, 0, 1]
+    ]);
+    entities.push(new Entity(mesh, "Rhino", mvMat, new MeshMaterial(mesh)));
+    
+    // Load and transform the man object
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
+    mesh.loadOFF(manjs);
+    mvMat = $M([
+        [ -0.45, 0, 0, -0.59],
+        [0, 0.45, 0, -0.32],
+        [0, 0, -0.4490562686784046, 0],
+        [0, 0, 0, 1]
+    ]);
+    entities.push(new Entity(mesh, "Man", mvMat, new MeshMaterial(mesh)));
+
+    // Create a plan underneath both objects
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.95,0.10);
+    mesh.createPlan(3.0, 50);
+    entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));
 
     // Fill the uniform buffers
     initUBOs();
 
-    // Initiate buffers
-    initBuffers();
-
-    // Init VAO
-    initVAO();
+    for(var i=0; i<entities.length; i++){
+        var verticesBuffer = gl.createBuffer();
+        var verticesIndexBuffer = gl.createBuffer();
+        var verticesNormalBuffer = gl.createBuffer();
+        var verticesColorBuffer = gl.createBuffer();
+    
+        // Create the colors
+        var colors = generateColors(entities[i].mesh);
+        // Initiate buffers
+        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
+        // Init VAO
+        initVAO(entities[i].mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
+    }
 
     // Display GUI
     initGui();
@@ -151,31 +176,27 @@ function createShader(gl, source, type) {
     return shader;
 }
 
-function initBuffers() {
+function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors) {
 
     // Vertex Buffer
-    verticesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-    positions = new Float32Array(flattenObject(mesh.m_positions));
+    var positions = new Float32Array(flattenObject(mesh.m_positions));
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Index buffer
-    verticesIndexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
     var triangles = new Uint16Array(flattenObject(mesh.m_triangles));
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Normals Buffer
-    verticesNormalBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
     var normals = new Float32Array(flattenObject(mesh.m_normals));
     gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Color Buffer
-    verticesColorBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     var col = new Float32Array(colors);
     gl.bufferData(gl.ARRAY_BUFFER, col, gl.STATIC_DRAW);
@@ -197,37 +218,34 @@ function initUBOs(){
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create and bind light to light UBO
     var lightData = createLights();
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, lightData);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 
     // Create material UBO and bind it to data
-    var meshMaterial = createMeshMaterial();
+    var meshMaterial = new Float32Array(flattenObject(new MeshMaterial()));
     uniformPerSceneBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerSceneBuffer);
-    gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.STATIC_DRAW);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, meshMaterial);
+    gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.DYNAMIC_DRAW);
+    
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function initVAO(){
+function initVAO(mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer){
 
     // Create buffer location attributes
     vertexPositionAttribute = 0;
-    vertexNormalAttribute = 1;
-    vertexColorAttribute = 2; 
+    vertexNormalAttribute   = 1;
+    vertexColorAttribute    = 2;
 
     // Fill VAO with the right calls
     var vertexArray = gl.createVertexArray();
     gl.bindVertexArray(vertexArray);
 
+    // Send vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     gl.enableVertexAttribArray(vertexPositionAttribute);
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
@@ -242,19 +260,23 @@ function initVAO(){
     gl.enableVertexAttribArray(vertexColorAttribute); 
     gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    // Send indexes
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
 
+    // Bind UBOs
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 2, uniformPerSceneBuffer);
+
+    gl.bindVertexArray(null);
+    vaos.push(vertexArray);
 }
 
 function createMatrixTransforms(){
     pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
     nMatrix  = Matrix.I(4);
-    // pMatrix + mvMatrix + nMatrix
-    transforms = new Float32Array((pMatrix.flatten().concat(mvMatrix.flatten())).concat(nMatrix.flatten()));
+    // mvMatrix + nMatrix + pMatrix
+    transforms = new Float32Array((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten()));
 }
 
 function createLights(){
@@ -266,7 +288,7 @@ function createLights(){
     for(var i=0; i<max_lights; i++){
         if(i<lights.length){
             // Do this if you want to see a cube at the position of the lights
-            enableLightDisplay(lights[i].position.elements);
+            enableLightDisplay(lights[i].position.elements, i);
             // Update position with mvMatrix and store in dataLights
             var l = LightSource.createLightSource(lights[i]);
             l.position = mvMatrix.multiply(lights[i].position);
@@ -283,44 +305,22 @@ function createLights(){
     return floatArray;
 }
 
-function createMeshMaterial(){
-    // Create material
-    var padding = -1;
-    // Buffer is apparently 16-aligned, must pad with 2 floats => 4*1 + 3*1 + 1*3 + 1*2 padding => 12
-    var a = [
-        mesh.diffuse.elements,
-        mesh.specular.elements,
-        mesh.shininess,
-        mesh.roughness,
-        mesh.fresnel,
-        Math.sqrt(cubeSize*cubeSize*3),
-        padding,
-    ];
-    return new Float32Array(flattenObject(a));
-}
-
-function enableLightDisplay(lightPos){
+function enableLightDisplay(lightPos, i){
     
-    var offset = mesh.m_positions.length;
-    var pos = [
-        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]-cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]+cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]+cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize]),
-        $V([lightPos[0]-cubeSize, lightPos[1]-cubeSize, lightPos[2]+cubeSize])
-    ];
+    var mesh = new Mesh();
+    var entity = new Entity(mesh, "Light " + i, Matrix.Translation(Vector.create(lightPos)), new MeshMaterial(mesh));
+    entities.push(entity);
+
+    var pos = boxFromLight(lightPos);
     mesh.m_positions = mesh.m_positions.concat(pos);
 
     var idx = [
-        $V([0 + offset,  2 + offset,  1 + offset]),      $V([2 + offset,  3 + offset,  1 + offset]),   // front
-        $V([4 + offset,  5 + offset,  6 + offset]),      $V([5 + offset,  7 + offset,  6 + offset]),   // back
-        $V([4 + offset,  0 + offset,  5 + offset]),      $V([0 + offset,  1 + offset,  5 + offset]),   // top
-        $V([6 + offset,  7 + offset,  2 + offset]),      $V([7 + offset,  3 + offset,  2 + offset]),   // bottom
-        $V([6 + offset,  0 + offset,  4 + offset]),      $V([6 + offset,  2 + offset,  0 + offset]),   // right
-        $V([5 + offset,  1 + offset,  7 + offset]),      $V([1 + offset,  3 + offset,  7 + offset])    // left*/
+        $V([0,  2,  1]),      $V([2,  3,  1]),   // front
+        $V([4,  5,  6]),      $V([5,  7,  6]),   // back
+        $V([4,  0,  5]),      $V([0,  1,  5]),   // top
+        $V([6,  7,  2]),      $V([7,  3,  2]),   // bottom
+        $V([6,  0,  4]),      $V([6,  2,  0]),   // right
+        $V([5,  1,  7]),      $V([1,  3,  7])    // left*/
     ];
     mesh.m_triangles = mesh.m_triangles.concat(idx);
 
@@ -349,9 +349,23 @@ function enableLightDisplay(lightPos){
     colors = colors.concat(col);
 }
 
-function generateColors(){
+function generateColors(mesh){
+    var col = [];
     for(var i=0; i<mesh.m_positions.length; i++){
-        colors.push(mesh.diffuse);
+        col.push(mesh.diffuse);
     }
-    colors = flattenObject(colors);
+    return flattenObject(col);
+}
+
+function boxFromLight(lightPos){
+    return [
+        $V([ cubeSize,  cubeSize, -cubeSize]),
+        $V([-cubeSize,  cubeSize, -cubeSize]),
+        $V([ cubeSize, -cubeSize, -cubeSize]),
+        $V([-cubeSize, -cubeSize, -cubeSize]),
+        $V([ cubeSize,  cubeSize,  cubeSize]),
+        $V([-cubeSize,  cubeSize,  cubeSize]),
+        $V([ cubeSize, -cubeSize,  cubeSize]),
+        $V([-cubeSize, -cubeSize,  cubeSize])
+    ];
 }

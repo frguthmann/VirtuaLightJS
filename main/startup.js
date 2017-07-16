@@ -62,7 +62,7 @@ function start() {
     // Cull only back faces
     gl.cullFace(gl.BACK);
     // Set clear color to white, fully opaque
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    gl.clearColor(0.0, 0.0, 1.0, 0.1);
     // Clear the color as well as the depth buffer.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -74,26 +74,20 @@ function start() {
     //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     
     // Load and transform the rhino object
+    // Load and transform the rhino object
     var mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20);
     mesh.loadOFF(rhinojs);
-    var mvMat = $M([
-        [0, 0, 1, 0.92],
-        [0, 1, 0, -0.5],
-        [-1, 0, 0, 0],
-        [0, 0, 0, 1]
-    ]);
-    entities.push(new Entity(mesh, "Rhino", mvMat, new MeshMaterial(mesh)));
+    entities.push(new Entity(mesh, "Rhino", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [1,-0.5,0];
+    entities[entities.length-1].rot = [90,0];
     
     // Load and transform the man object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
     mesh.loadOFF(manjs);
-    mvMat = $M([
-        [ -0.45, 0, 0, -0.59],
-        [0, 0.45, 0, -0.32],
-        [0, 0, -0.4490562686784046, 0],
-        [0, 0, 0, 1]
-    ]);
-    entities.push(new Entity(mesh, "Man", mvMat, new MeshMaterial(mesh)));
+    entities.push(new Entity(mesh, "Man", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [-1,-0.32,-0.3];
+    entities[entities.length-1].rot = [180,0];
+    entities[entities.length-1].scale = 0.45;
 
     // Create a plan underneath both objects
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.95,0.10);

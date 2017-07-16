@@ -21,10 +21,11 @@ function initGui() {
         // Add a folder with the name of the entity
         var f2 = f1.addFolder(entities[i].name);        
         // We need to store the menu values somewhere
-        entities[i].pos   = [0,0,0];
-        entities[i].rot   = [0,0];
-        entities[i].scale = 1;
-        entities[i].isRotating = false;
+        if(!entities[i].pos){ entities[i].pos = [0,0,0]; }
+        if(!entities[i].rot){ entities[i].rot   = [0,0]; }
+        if(!entities[i].scale){ entities[i].scale = 1; }
+        if(!entities[i].isRotating){ entities[i].isRotating = false; }
+        updateObjectMVMatrix(i);
 
         /*  
             Immediately Invoked Function Expression (IIFE)
@@ -96,7 +97,7 @@ function initGui() {
             scene.mode = gl.LINES;
         }
     }).listen();
-    
+
 };
 
 function updateObjectMVMatrix(idx){
@@ -105,5 +106,4 @@ function updateObjectMVMatrix(idx){
     var rotTheta  = Matrix.Rotation(entities[idx].rot[1] * Math.PI / 180.0, $V([1,0,0])).ensure4x4();
     var scale     = Matrix.Diagonal([entities[idx].scale, entities[idx].scale, entities[idx].scale, 1]);
     entities[idx].mvMatrix = trans.x(rotTheta).x(rotPhi).x(scale).x(Matrix.I(4));
-    console.log(entities[idx].mvMatrix);
 }

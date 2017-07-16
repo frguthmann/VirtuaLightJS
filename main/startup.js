@@ -4,12 +4,13 @@ var gl;
 var shaderProgram;
 var depthProgram;
 // Depth shader used for shadow maps
-var SHADOW_WIDTH = 1024;
-var SHADOW_HEIGHT = 1024;
+var SHADOW_WIDTH = 640;
+var SHADOW_HEIGHT = 480;
 var depthMapFBO;
 var depthMap;
 var depthVaos = [];
 var quadVertexArray;
+var triVertexArray;
 var drawUniformDepthLocation;
 
 // Main canvas we're drawing in
@@ -90,13 +91,13 @@ function start() {
     entities[entities.length-1].pos = [1,-0.5,0];
     entities[entities.length-1].rot = [90,0];
     
-    /*// Load and transform the man object
+    // Load and transform the man object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
     mesh.loadOFF(manjs);
     entities.push(new Entity(mesh, "Man", Matrix.I(4), new MeshMaterial(mesh)));
     entities[entities.length-1].pos = [-1,-0.32,-0.3];
     entities[entities.length-1].rot = [180,0];
-    entities[entities.length-1].scale = 0.45;*/
+    entities[entities.length-1].scale = 0.45;
 
     // Create a plan underneath both objects
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.95,0.10);
@@ -119,7 +120,7 @@ function start() {
         // Init VAO
         initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
         // Init DepthVAO
-        //initVAO(verticesBuffer, verticesIndexBuffer);
+        initDepthVAO(verticesBuffer, verticesIndexBuffer);
     }
 
     // Init quad shaders
@@ -161,7 +162,7 @@ function start() {
     // Generate frame buffer
     depthMapFBO = gl.createFramebuffer();
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
-    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);;
     
     var status = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER);
     if (status != gl.FRAMEBUFFER_COMPLETE) {
@@ -215,6 +216,31 @@ function initQuad(){
     gl.enableVertexAttribArray(drawVertexTexLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindVertexArray(null);
+
+
+    triPositions = new Float32Array(flattenObject(entities[0].mesh.m_positions));
+    var triVertexPosBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, triVertexPosBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, triPositions, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+
+    var triIndex = new Uint16Array(flattenObject(entities[0].mesh.m_triangles));
+    var triIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triIndex, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    triVertexArray = gl.createVertexArray();
+    gl.bindVertexArray(triVertexArray);
+    var depthVertexPosLocation = 0; // set with GLSL layout qualifier
+    gl.bindBuffer(gl.ARRAY_BUFFER, triVertexPosBuffer);
+    gl.vertexAttribPointer(depthVertexPosLocation, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(depthVertexPosLocation);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triIndexBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindVertexArray(null);
+
 }
 
 function initShaders() {
@@ -271,25 +297,25 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
     var positions = new Float32Array(flattenObject(mesh.m_positions));
     gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // Index buffer
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
     var triangles = new Uint16Array(flattenObject(mesh.m_triangles));
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
     // Normals Buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
     var normals = new Float32Array(flattenObject(mesh.m_normals));
     gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // Color Buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     var col = new Float32Array(colors);
     gl.bufferData(gl.ARRAY_BUFFER, col, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
 
 function initUBOs(){
@@ -362,6 +388,7 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
 }
 
 function initDepthVAO(verticesBuffer, verticesIndexBuffer){
+
     // Create buffer location attributes
     vertexPositionAttribute = 0;
 
@@ -380,7 +407,6 @@ function initDepthVAO(verticesBuffer, verticesIndexBuffer){
     // Bind UBOs
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindVertexArray(null);
     depthVaos.push(vertexArray);
 }

@@ -11,22 +11,24 @@ function drawScene() {
     }
 
     // Compute light positions relative to this camera and update UBO
-    updateLightsUniformBuffer();
+    //updateLightsUniformBuffer();
 
-    // 1. first render to depth map
+    // Pass 1: Depth
+    var near_plane = 1.0, far_plane = 15.0;
+    pMatrix = makeOrtho(-5.0, 5.0, -5.0, 5.0, camera.nearPlane, camera.farPlane);
+    mvMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     gl.viewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
     gl.enable(gl.DEPTH_TEST); // Need to write depth
     gl.clear(gl.DEPTH_BUFFER_BIT);
-    var near_plane = 1.0, far_plane = 7.5;
-    var lightProjection = makeOrtho(-10.0, 10.0, -10.0, 10.0, near_plane, far_plane);
-    var lightView = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    mvMatrix = lightProjection.multiply(lightView);
-    // render scene from light's point of view
-    gl.useProgram(depthProgram);
+    // Bind program
+    gl.useProgram(depthProgram);    
     drawAllObjectsDepth();
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
+    // Pass 2: Draw
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     // Quad for debug
     gl.useProgram(quadProgram);
     gl.uniform1i(drawUniformDepthLocation, 0);
@@ -50,7 +52,7 @@ function drawScene() {
 
 function drawAllObjectsDepth(){
     // Render all entities with specific VAO / VBO / UBO 
-    for(var i=0; i<depthVaos.length; i++){
+    for(var i=0; i<depthVaos.length - lights.length; i++){
         
         // The mvMatrix will be changed for each object, we need to store the original state
         mvPushMatrix();
@@ -126,7 +128,7 @@ function updateMatrixUniformBuffer(i) {
     
     // Updating transforms UBOs: projection matrix not updated, it's never changed
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms, 0, transforms.length*(2.0/3.0));
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms); //, 0, transforms.length*(2.0/3.0)
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 

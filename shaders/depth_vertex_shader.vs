@@ -21,8 +21,9 @@ layout(location = 0) in vec3 position;
 
 void main(void) {
 
-    // MVMatrix actually has the projection component in it too. WIP
-    gl_Position = u_perDraw.transform.uMVMatrix * vec4(position,1.0);
+    gl_Position = vec4(position,1.0);
+    //gl_Position = u_perDraw.transform.uMVMatrix * vec4(position,1.0);
+    gl_Position = u_perDraw.transform.uPMatrix * u_perDraw.transform.uMVMatrix * vec4(position, 1.0);
     
 }
 `;

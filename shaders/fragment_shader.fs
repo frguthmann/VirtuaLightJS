@@ -39,9 +39,12 @@ uniform PerPass
     float nbLights;
 } u_perPass;
 
+uniform sampler2D shadowMap;
+
 in highp vec4 v_view ;
 in highp vec3 vNormal;
 in highp vec4 vColor;
+in highp vec4 vFragPosLightSpace;
 
 out vec4 color;
 
@@ -50,6 +53,7 @@ vec3 getIntensityFromPosition(LightSource l, vec3 p);
 vec3 blinnPhongSpecular(vec3 p, vec3 n, vec3 incidentVector);
 float microFacetSpecular(vec3 p, vec3 n, vec3 incidentVector, int distriNbr);
 vec4 getLightColor(LightSource l, vec3 p);
+float ShadowCalculation(vec4 FragPosLightSpace);
 
 void main(void) {
     vec3 diffuse = vec3(0.0,0.0,0.0);
@@ -76,7 +80,15 @@ void main(void) {
     }
     // ----------------------------------------
 
-    color = vec4(diffuse,1.0) * vColor.w + vec4(specular,1.0);
+    float shadowFactor = ShadowCalculation(vFragPosLightSpace);
+    color = vec4(diffuse * shadowFactor,1.0) * vColor.w + vec4(specular * shadowFactor,1.0);
+
+    vec3 projCoords = vFragPosLightSpace.xyz / vFragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    vec3 depth = vec3(texture(shadowMap,  projCoords.xy).r); 
+    color = vec4(depth, 1.0);
 }
 
 // Diffuse response of material
@@ -162,5 +174,21 @@ vec4 getLightColor(LightSource l, vec3 p){
         return vec4(l.color, 1.0);
     }
 }
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // check whether current frag pos is in shadow
+    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+
+    return shadow;
+}  
 
 `;

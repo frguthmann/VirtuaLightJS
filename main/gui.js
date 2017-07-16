@@ -74,7 +74,6 @@ function initGui() {
             function updateLightMVMatrix(){
                 var lidx = idx;
                 var eidx = i;
-                console.log(eidx, lidx);
                 var trans = Matrix.Translation(lights[lidx].position);
                 entities[eidx].mvMatrix = trans.x(Matrix.I(4));
             }

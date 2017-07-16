@@ -1,4 +1,5 @@
 var scene = {mode : 4, mvMatrixStack : []};
+var lightSpaceMatrix;
 
 function drawScene() {
     stats.begin();
@@ -11,12 +12,14 @@ function drawScene() {
     }
 
     // Compute light positions relative to this camera and update UBO
-    //updateLightsUniformBuffer();
+    updateLightsUniformBuffer();
 
     // Pass 1: Depth
+    mvPushMatrix();
     var near_plane = 1.0, far_plane = 15.0;
     pMatrix = makeOrtho(-5.0, 5.0, -5.0, 5.0, camera.nearPlane, camera.farPlane);
-    mvMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    mvMatrix = lightSpaceMatrix;
     gl.viewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
     gl.enable(gl.DEPTH_TEST); // Need to write depth
@@ -25,9 +28,10 @@ function drawScene() {
     gl.useProgram(depthProgram);    
     drawAllObjectsDepth();
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    mvPopMatrix();
 
     // Pass 2: Draw
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    /*gl.clearColor(0.0, 0.0, 1.0, 0.1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     // Quad for debug
     gl.useProgram(quadProgram);
@@ -35,16 +39,18 @@ function drawScene() {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
     gl.bindVertexArray(quadVertexArray);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);*/
 
     // 2. then render scene as normal with shadow mapping (using depth map)
-    /*gl.viewport(0, 0, canvas.width, canvas.height);
+    pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.clearColor(0.0, 0.0, 1.0, 0.1);
     gl.useProgram(shaderProgram);
+    gl.uniform1i(shadowMapUniform, 0);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
-    drawAllObjects();*/
+    drawAllObjects();
 
     requestAnimationFrame(drawScene);
     stats.end();
@@ -122,9 +128,10 @@ function rotateEntity(i){
 function updateMatrixUniformBuffer(i) {
     //console.log(mvMatrix,entities[i].mvMatrix);
     mvMatrix = mvMatrix.multiply(entities[i].mvMatrix);
+    lightSpaceMatrix = lightSpaceMatrix.multiply(entities[i].mvMatrix);
     nMatrix = mvMatrix.inverse();
     nMatrix = nMatrix.transpose();
-    transforms = new Float32Array((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten()));
+    transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(lightSpaceMatrix.flatten()));
     
     // Updating transforms UBOs: projection matrix not updated, it's never changed
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);

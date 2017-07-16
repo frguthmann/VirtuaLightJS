@@ -12,6 +12,7 @@ var depthVaos = [];
 var quadVertexArray;
 var triVertexArray;
 var drawUniformDepthLocation;
+var shadowMapUniform;
 
 // Main canvas we're drawing in
 var canvas;
@@ -127,7 +128,8 @@ function start() {
     quad_vertex_shader = quad_vertex_shader.replace(/^\s+|\s+$/g, '');
     quad_fragment_shader = quad_fragment_shader.replace(/^\s+|\s+$/g, '');
     quadProgram = createProgram(gl, quad_vertex_shader, quad_fragment_shader);
-    var drawUniformDepthLocation = gl.getUniformLocation(quadProgram, 'depthMap');
+    drawUniformDepthLocation = gl.getUniformLocation(quadProgram, 'depthMap');
+    shadowMapUniform = gl.getUniformLocation(shaderProgram, 'shadowMap');
     initQuad();
 
     // Display GUI
@@ -415,7 +417,7 @@ function createMatrixTransforms(){
     pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
     nMatrix  = Matrix.I(4);
     // mvMatrix + nMatrix + pMatrix
-    transforms = new Float32Array((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten()));
+    transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(Matrix.I(4).flatten()));
 }
 
 function createLights(){

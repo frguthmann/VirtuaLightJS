@@ -1,7 +1,16 @@
 // Webgl program
 var gl;
-// Shader program
+// Main shader program
 var shaderProgram;
+var depthProgram;
+// Depth shader used for shadow maps
+var SHADOW_WIDTH = 1024;
+var SHADOW_HEIGHT = 1024;
+var depthMapFBO;
+var depthMap;
+var depthVaos = [];
+var quadVertexArray;
+var drawUniformDepthLocation;
 
 // Main canvas we're drawing in
 var canvas;
@@ -81,13 +90,13 @@ function start() {
     entities[entities.length-1].pos = [1,-0.5,0];
     entities[entities.length-1].rot = [90,0];
     
-    // Load and transform the man object
+    /*// Load and transform the man object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
     mesh.loadOFF(manjs);
     entities.push(new Entity(mesh, "Man", Matrix.I(4), new MeshMaterial(mesh)));
     entities[entities.length-1].pos = [-1,-0.32,-0.3];
     entities[entities.length-1].rot = [180,0];
-    entities[entities.length-1].scale = 0.45;
+    entities[entities.length-1].scale = 0.45;*/
 
     // Create a plan underneath both objects
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.95,0.10);
@@ -108,8 +117,17 @@ function start() {
         // Initiate buffers
         initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
         // Init VAO
-        initVAO(entities[i].mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
+        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
+        // Init DepthVAO
+        //initVAO(verticesBuffer, verticesIndexBuffer);
     }
+
+    // Init quad shaders
+    quad_vertex_shader = quad_vertex_shader.replace(/^\s+|\s+$/g, '');
+    quad_fragment_shader = quad_fragment_shader.replace(/^\s+|\s+$/g, '');
+    quadProgram = createProgram(gl, quad_vertex_shader, quad_fragment_shader);
+    var drawUniformDepthLocation = gl.getUniformLocation(quadProgram, 'depthMap');
+    initQuad();
 
     // Display GUI
     initGui();
@@ -117,9 +135,86 @@ function start() {
     // Activate mouse / keyboard input
     initInputs();
 
+    // Init depth shaders
+    depth_vertex_shader = depth_vertex_shader.replace(/^\s+|\s+$/g, '');
+    depth_fragment_shader = depth_fragment_shader.replace(/^\s+|\s+$/g, '');
+    depthProgram = createProgram(gl, depth_vertex_shader, depth_fragment_shader);
+
+
+    // Generate depth texture
+    depthMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, depthMap);
+    gl.texImage2D(gl.TEXTURE_2D,
+        0,
+        gl.DEPTH_COMPONENT32F,      // uint16 vs float32?
+        SHADOW_WIDTH,
+        SHADOW_HEIGHT,
+        0,
+        gl.DEPTH_COMPONENT,
+        gl.FLOAT,
+        null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);  
+
+    // Generate frame buffer
+    depthMapFBO = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
+    
+    var status = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+        console.log('fb status: ' + status.toString(16));
+        return;
+    }
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
     // Draw the scene
     drawScene();
 
+}
+
+function initQuad(){
+    var quadPositions = new Float32Array([
+        -1.0, -1.0,
+         1.0, -1.0,
+         1.0,  1.0,
+         1.0,  1.0,
+        -1.0,  1.0,
+        -1.0, -1.0
+    ]);
+    var quadVertexPosBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPosBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, quadPositions, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    var quadTexcoords = new Float32Array([
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0
+    ]);
+    var quadVertexTexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, quadTexcoords, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+
+    quadVertexArray = gl.createVertexArray();
+    gl.bindVertexArray(quadVertexArray);
+    var drawVertexPosLocation = 0; // set with GLSL layout qualifier
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPosBuffer);
+    gl.vertexAttribPointer(drawVertexPosLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(drawVertexPosLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    var drawVertexTexLocation = 4; // set with GLSL layout qualifier
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTexBuffer);
+    gl.vertexAttribPointer(drawVertexTexLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(drawVertexTexLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindVertexArray(null);
 }
 
 function initShaders() {
@@ -228,7 +323,7 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function initVAO(mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer){
+function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer){
 
     // Create buffer location attributes
     vertexPositionAttribute = 0;
@@ -264,6 +359,30 @@ function initVAO(mesh, i, verticesBuffer, verticesIndexBuffer, verticesNormalBuf
 
     gl.bindVertexArray(null);
     vaos.push(vertexArray);
+}
+
+function initDepthVAO(verticesBuffer, verticesIndexBuffer){
+    // Create buffer location attributes
+    vertexPositionAttribute = 0;
+
+    // Fill VAO with the right calls
+    var vertexArray = gl.createVertexArray();
+    gl.bindVertexArray(vertexArray);
+
+    // Send vertices
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
+    gl.enableVertexAttribArray(vertexPositionAttribute);
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    
+    // Send indexes
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
+
+    // Bind UBOs
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindVertexArray(null);
+    depthVaos.push(vertexArray);
 }
 
 function createMatrixTransforms(){

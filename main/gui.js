@@ -65,19 +65,20 @@ function initGui() {
         var f2 = f1.addFolder(entities[i].name);
         var f31 = f2.addFolder('Position');
 
-        (function(idx) {
+        (function(i, idx) {
             f31.add(lights[idx].position.elements, 0, -15, 15).name('Pos X').onChange(updateLightMVMatrix);
             f31.add(lights[idx].position.elements, 1, -15, 15).name('Pos Y').onChange(updateLightMVMatrix);
             f31.add(lights[idx].position.elements, 2, -15, 15).name('Pos Z').onChange(updateLightMVMatrix);
 
             function updateLightMVMatrix(){
                 var lidx = idx;
-                var eidx = idx + lights.length;
+                var eidx = i;
+                console.log(eidx, lidx);
                 var trans = Matrix.Translation(lights[lidx].position);
                 entities[eidx].mvMatrix = trans.x(Matrix.I(4));
             }
 
-        }(idx));
+        }(i, idx));
 
         var f32 = f2.addFolder('Color');
         f32.add(lights[idx].color.elements, 0, 0, 1).name('Red');

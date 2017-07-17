@@ -4,8 +4,8 @@ var gl;
 var shaderProgram;
 var depthProgram;
 // Depth shader used for shadow maps
-var SHADOW_WIDTH = 640;     // 640 
-var SHADOW_HEIGHT = 480;    //480
+var SHADOW_WIDTH = 8192;     // 640 
+var SHADOW_HEIGHT = 8192;    //480
 var depthMapFBO;
 var depthMap;
 var depthVaos = [];

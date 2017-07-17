@@ -1,6 +1,4 @@
 var scene = {mode : 4, mvMatrixStack : []};
-var lightSpaceMatrix;
-var ortho = 10.0;
 var depthVP;
 
 function drawScene() {
@@ -16,26 +14,31 @@ function drawScene() {
     // Compute light positions relative to this camera and update UBO
     updateLightsUniformBuffer();
 
-    // Pass 1: Depth
-    mvPushMatrix();
-    var near_plane = 1.0, far_plane = 15.0;
-    pMatrix = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
-    lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    depthVP = pMatrix.multiply(lightSpaceMatrix);
-    gl.viewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
-    gl.enable(gl.DEPTH_TEST); // Need to write depth
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-    // Bind program
-    gl.useProgram(depthProgram);    
-    drawAllObjectsDepth();
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    mvPopMatrix();
+    // Pass 1: Depth    
+    // Generate light ortho proj
+    var ortho = 10.0;
+    var proj = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
+    gl.cullFace(gl.FRONT);
+    // Generate light view
+    //for(var i=0; i<lights.length; i++){
+        var lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        depthVP = proj.multiply(lightSpaceMatrix);
+        
+        gl.viewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
+        gl.enable(gl.DEPTH_TEST); // Need to write depth
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        // Bind program
+        gl.useProgram(depthProgram);    
+        drawAllObjectsDepth();
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+        debugDrawOnQuad(depthMap);
+    //}
 
     // debugDrawOnQuad(depthMap);
-
+    gl.cullFace(gl.BACK);
     // 2. then render scene as normal with shadow mapping (using depth map)
-    pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.clearColor(0.0, 0.0, 1.0, 0.1);
@@ -129,13 +132,10 @@ function updateMatrixUniformBuffer(i) {
     mvMatrix = mvMatrix.multiply(entities[i].mvMatrix);
     nMatrix = mvMatrix.inverse();
     nMatrix = nMatrix.transpose();
-    var proj = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
-    var depthMVP = proj.multiply(lightSpaceMatrix).multiply(entities[i].mvMatrix);
+    var depthMVP = depthVP.multiply(entities[i].mvMatrix);
     transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(depthMVP.flatten()));
-    //console.log("update", i, mvMatrix.flatten(), lightSpaceMatrix.multiply(entities[i].mvMatrix).flatten());
-    // Updating transforms UBOs: projection matrix not updated, it's never changed
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms); //, 0, transforms.length*(2.0/3.0)
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 

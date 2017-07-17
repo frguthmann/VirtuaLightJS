@@ -1,5 +1,7 @@
 var scene = {mode : 4, mvMatrixStack : []};
 var lightSpaceMatrix;
+var ortho = 10.0;
+var depthVP;
 
 function drawScene() {
     stats.begin();
@@ -17,9 +19,9 @@ function drawScene() {
     // Pass 1: Depth
     mvPushMatrix();
     var near_plane = 1.0, far_plane = 15.0;
-    pMatrix = makeOrtho(-5.0, 5.0, -5.0, 5.0, camera.nearPlane, camera.farPlane);
+    pMatrix = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
     lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    mvMatrix = lightSpaceMatrix;
+    depthVP = pMatrix.multiply(lightSpaceMatrix);
     gl.viewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
     gl.enable(gl.DEPTH_TEST); // Need to write depth
@@ -30,16 +32,7 @@ function drawScene() {
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     mvPopMatrix();
 
-    // Pass 2: Draw
-    /*gl.clearColor(0.0, 0.0, 1.0, 0.1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    // Quad for debug
-    gl.useProgram(quadProgram);
-    gl.uniform1i(drawUniformDepthLocation, 0);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, depthMap);
-    gl.bindVertexArray(quadVertexArray);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);*/
+    // debugDrawOnQuad(depthMap);
 
     // 2. then render scene as normal with shadow mapping (using depth map)
     pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
@@ -56,24 +49,30 @@ function drawScene() {
     stats.end();
 }
 
+function debugDrawOnQuad(texture){
+    gl.clearColor(0.0, 0.0, 1.0, 0.1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    // Quad for debug
+    gl.useProgram(quadProgram);
+    gl.uniform1i(drawUniformDepthLocation, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.bindVertexArray(quadVertexArray);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+}
+
 function drawAllObjectsDepth(){
     // Render all entities with specific VAO / VBO / UBO 
-    for(var i=0; i<depthVaos.length - lights.length; i++){
-        
-        // The mvMatrix will be changed for each object, we need to store the original state
-        mvPushMatrix();
-
+    var size = depthVaos.length - lights.length;
+    for(var i=0; i<size; i++){
         // Compute and update transforms UBOs according to mvMatrix
-        updateMatrixUniformBuffer(i);
-
+        updateMatrixUniformBufferDepth(i);
         // Bind VAO
         gl.bindVertexArray(depthVaos[i]);
         // Draw triangles
         gl.drawElements(scene.mode, entities[i].mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
         // UNBIND VAO
         gl.bindVertexArray(null);
-
-        mvPopMatrix();
     }
 }
 
@@ -128,12 +127,22 @@ function rotateEntity(i){
 function updateMatrixUniformBuffer(i) {
     //console.log(mvMatrix,entities[i].mvMatrix);
     mvMatrix = mvMatrix.multiply(entities[i].mvMatrix);
-    lightSpaceMatrix = lightSpaceMatrix.multiply(entities[i].mvMatrix);
     nMatrix = mvMatrix.inverse();
     nMatrix = nMatrix.transpose();
-    transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(lightSpaceMatrix.flatten()));
-    
+    var proj = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
+    var depthMVP = proj.multiply(lightSpaceMatrix).multiply(entities[i].mvMatrix);
+    transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(depthMVP.flatten()));
+    //console.log("update", i, mvMatrix.flatten(), lightSpaceMatrix.multiply(entities[i].mvMatrix).flatten());
     // Updating transforms UBOs: projection matrix not updated, it's never changed
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms); //, 0, transforms.length*(2.0/3.0)
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+}
+
+function updateMatrixUniformBufferDepth(i){
+    //console.log(mvMatrix,entities[i].mvMatrix);
+    var depthMVP = depthVP.multiply(entities[i].mvMatrix);
+    transforms = new Float32Array(depthMVP.flatten());
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms); //, 0, transforms.length*(2.0/3.0)
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);

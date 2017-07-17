@@ -4,13 +4,12 @@ var gl;
 var shaderProgram;
 var depthProgram;
 // Depth shader used for shadow maps
-var SHADOW_WIDTH = 640;
-var SHADOW_HEIGHT = 480;
+var SHADOW_WIDTH = 640;     // 640 
+var SHADOW_HEIGHT = 480;    //480
 var depthMapFBO;
 var depthMap;
 var depthVaos = [];
 var quadVertexArray;
-var triVertexArray;
 var drawUniformDepthLocation;
 var shadowMapUniform;
 
@@ -218,31 +217,6 @@ function initQuad(){
     gl.enableVertexAttribArray(drawVertexTexLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindVertexArray(null);
-
-
-    triPositions = new Float32Array(flattenObject(entities[0].mesh.m_positions));
-    var triVertexPosBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, triVertexPosBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, triPositions, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-
-    var triIndex = new Uint16Array(flattenObject(entities[0].mesh.m_triangles));
-    var triIndexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triIndexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triIndex, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-
-    triVertexArray = gl.createVertexArray();
-    gl.bindVertexArray(triVertexArray);
-    var depthVertexPosLocation = 0; // set with GLSL layout qualifier
-    gl.bindBuffer(gl.ARRAY_BUFFER, triVertexPosBuffer);
-    gl.vertexAttribPointer(depthVertexPosLocation, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(depthVertexPosLocation);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triIndexBuffer);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    gl.bindVertexArray(null);
-
 }
 
 function initShaders() {

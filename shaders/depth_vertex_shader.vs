@@ -7,9 +7,7 @@ layout(std140, column_major) uniform;
 
 struct Transform
 {
-    mat4 uMVMatrix;
-    mat4 uNormalMatrix;
-    mat4 uPMatrix;
+    mat4 uDepthMVP;
 };
 
 uniform PerDraw
@@ -21,9 +19,7 @@ layout(location = 0) in vec3 position;
 
 void main(void) {
 
-    gl_Position = vec4(position,1.0);
-    //gl_Position = u_perDraw.transform.uMVMatrix * vec4(position,1.0);
-    gl_Position = u_perDraw.transform.uPMatrix * u_perDraw.transform.uMVMatrix * vec4(position, 1.0);
+    gl_Position = u_perDraw.transform.uDepthMVP * vec4(position, 1.0);
     
 }
 `;

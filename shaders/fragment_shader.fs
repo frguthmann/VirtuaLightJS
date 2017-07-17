@@ -83,12 +83,12 @@ void main(void) {
     float shadowFactor = ShadowCalculation(vFragPosLightSpace);
     color = vec4(diffuse * shadowFactor,1.0) * vColor.w + vec4(specular * shadowFactor,1.0);
 
-    vec3 projCoords = vFragPosLightSpace.xyz / vFragPosLightSpace.w;
+    /*vec3 projCoords = vFragPosLightSpace.xyz / vFragPosLightSpace.w;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
     vec3 depth = vec3(texture(shadowMap,  projCoords.xy).r); 
-    color = vec4(depth, 1.0);
+    color = vec4(depth, 1.0);*/
 }
 
 // Diffuse response of material
@@ -186,7 +186,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
-    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+    float shadow = currentDepth > closestDepth  ? 0.0 : 1.0;
 
     return shadow;
 }  

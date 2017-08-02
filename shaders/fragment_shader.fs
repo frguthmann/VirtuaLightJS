@@ -2,6 +2,7 @@ var fragment_shader = `
 #version 300 es
 precision highp float;
 precision highp int;
+precision highp sampler2DShadow;
 
 #define M_PI 3.1415926535897932384626433832795
 #define MAX_LIGHTS 5
@@ -39,7 +40,7 @@ uniform PerPass
     float nbLights;
 } u_perPass;
 
-uniform sampler2D shadowMap;
+uniform sampler2DShadow shadowMap;
 
 in highp vec4 v_view ;
 in highp vec3 vNormal;
@@ -169,33 +170,27 @@ vec4 getLightColor(LightSource l, vec3 p){
     }
 }
 
+// http://ogldev.atspace.co.uk/www/tutorial42/tutorial42.html
+// https://learnopengl.com/#!Advanced-Lighting/Shadows/Shadow-Mapping
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMap, projCoords.xy).r; 
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-    // check whether current frag pos is in shadow
-    
-    /*float bias = 0.000;
-    float shadow = currentDepth - bias > closestDepth  ? 0.5 : 1.0;*/
 
-    // Basic PCF: https://learnopengl.com/#!Advanced-Lighting/Shadows/Shadow-Mapping
     float shadow = 0.0;
-    float bias = 0.000;
+    float bias = 0.00001;
     vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
     for(float x = -1.0; x <= 1.0; x+=0.5)
     {
         for(float y = -1.0; y <= 1.0; y+=0.5)
         {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - bias > pcfDepth ? 0.3 : 1.0;        
+            vec3 UVC = vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z + bias);
+            shadow += texture(shadowMap, UVC) == 0.0 ? 0.3 : 1.0;        
         }    
     }
+
     shadow /= 25.0;
 
     float dotNL = dot(normal, lightDir);

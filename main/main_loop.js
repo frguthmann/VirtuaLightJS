@@ -33,10 +33,9 @@ function drawScene() {
         drawAllObjectsDepth();
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
 
-        debugDrawOnQuad(depthMap);
+        //debugDrawOnQuad(depthMap);
     //}
 
-    // debugDrawOnQuad(depthMap);
     gl.cullFace(gl.BACK);
     // 2. then render scene as normal with shadow mapping (using depth map)
     gl.viewport(0, 0, canvas.width, canvas.height);

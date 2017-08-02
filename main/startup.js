@@ -4,8 +4,7 @@ var gl;
 var shaderProgram;
 var depthProgram;
 // Depth shader used for shadow maps
-var SHADOW_WIDTH = 1024;     // 640 
-var SHADOW_HEIGHT = 1024;    //480
+var shadowSize = {SHADOW_WIDTH : 1024, SHADOW_HEIGHT : 1024};   // 640 * 480
 var depthMapFBO;
 var depthMap;
 var depthVaos = [];
@@ -149,8 +148,8 @@ function start() {
     gl.texImage2D(gl.TEXTURE_2D,
         0,
         gl.DEPTH_COMPONENT32F,      // uint16 vs float32?
-        SHADOW_WIDTH,
-        SHADOW_HEIGHT,
+        shadowSize.SHADOW_WIDTH,
+        shadowSize.SHADOW_HEIGHT,
         0,
         gl.DEPTH_COMPONENT,
         gl.FLOAT,
@@ -173,14 +172,6 @@ function start() {
         return;
     }
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-
-    var nbVertices = 0;
-    var nbTriangles = 0;
-    for(var i=0; i<entities.length; i++){
-        nbVertices += entities[i].mesh.m_positions.length;
-        nbTriangles += entities[i].mesh.m_triangles.length;
-    }
-    console.log(nbVertices, nbTriangles);
 
     // Draw the scene
     drawScene();

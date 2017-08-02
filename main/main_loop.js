@@ -24,7 +24,7 @@ function drawScene() {
         var lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
         depthVP = proj.multiply(lightSpaceMatrix);
         
-        gl.viewport(0,0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
         gl.enable(gl.DEPTH_TEST); // Need to write depth
         gl.clear(gl.DEPTH_BUFFER_BIT);

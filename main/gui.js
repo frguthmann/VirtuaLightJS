@@ -1,6 +1,6 @@
 // FPS counter
 var stats;
-var guiObj = { sceneMode : "Normal" };
+var guiObj = { sceneMode : "Normal", nbVertices : 0, nbTriangles : 0, shadowRes : "0 x 0" };
 
 function initFPSCounter(){
     stats = new Stats();
@@ -13,7 +13,7 @@ function initGui() {
 
     var gui = new dat.GUI();
     
-    // Let's create the menu for meshes / objects
+    // MESHES FOLDER
     var f1 = gui.addFolder("Objects");
     f1.open();
     for(var i=0; i<entities.length-lights.length; i++){
@@ -58,6 +58,7 @@ function initGui() {
 
     }
 
+    // LIGHTS FOLDER
     var f1 = gui.addFolder("Lights");
     f1.open();
     for(var i=entities.length-lights.length; i<entities.length; i++){
@@ -89,6 +90,28 @@ function initGui() {
         f2.add(lights[idx], 'intensity', 0, 150).name('Intensity');
     }
 
+    // SCENE INFOS
+    for(var i=0; i<entities.length; i++){
+        guiObj.nbVertices += entities[i].mesh.m_positions.length;
+        guiObj.nbTriangles += entities[i].mesh.m_triangles.length;
+    }
+
+    var statsFolder = gui.addFolder('Scene Details');
+    
+    var nbVertices = statsFolder.add(guiObj, 'nbVertices').name("Vertices");
+    nbVertices.domElement.style.pointerEvents = "none"
+    nbVertices.domElement.style.opacity = 0.5;
+    
+    var nbTriangles = statsFolder.add(guiObj, 'nbTriangles').name("Triangles");
+    nbTriangles.domElement.style.pointerEvents = "none"
+    nbTriangles.domElement.style.opacity = 0.5;
+    
+    guiObj.shadowRes = shadowSize.SHADOW_WIDTH + " x " + shadowSize.SHADOW_HEIGHT;
+    var shadowRes = statsFolder.add(guiObj, 'shadowRes').name("Shadow Res");
+    shadowRes.domElement.style.pointerEvents = "none"
+    shadowRes.domElement.style.opacity = 0.5;
+
+    // WIREFRAME MODE
     gui.add(guiObj, 'sceneMode', [ 'Normal', 'Wireframe']).name("Render Mode (W)").onChange(function(value){
         if(value == 'Normal'){
             scene.mode = gl.TRIANGLES;

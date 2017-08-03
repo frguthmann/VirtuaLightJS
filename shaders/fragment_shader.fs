@@ -2,7 +2,6 @@ var fragment_shader = `
 #version 300 es
 precision highp float;
 precision highp int;
-precision highp sampler2DShadow;
 
 #define M_PI 3.1415926535897932384626433832795
 #define MAX_LIGHTS 5
@@ -40,12 +39,11 @@ uniform PerPass
     float nbLights;
 } u_perPass;
 
-uniform sampler2DShadow shadowMap;
+uniform samplerCube shadowMap;
 
 in highp vec4 v_view ;
 in highp vec3 vNormal;
 in highp vec4 vColor;
-in highp vec4 vFragPosLightSpace;
 
 out vec4 color;
 
@@ -55,6 +53,7 @@ vec3 blinnPhongSpecular(vec3 p, vec3 n, vec3 incidentVector);
 float microFacetSpecular(vec3 p, vec3 n, vec3 incidentVector, int distriNbr);
 vec4 getLightColor(LightSource l, vec3 p);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
+float ShadowCalculationCube(vec3 lightToPos);
 
 void main(void) {
     vec3 diffuse = vec3(0.0,0.0,0.0);
@@ -81,9 +80,14 @@ void main(void) {
     }
     // ----------------------------------------
 
-    vec3 lightDir = normalize(u_perPass.lights[0].position-p);
-    float shadowFactor = ShadowCalculation(vFragPosLightSpace, n, lightDir);
+    //vec3 lightDir = normalize(u_perPass.lights[0].position-p);
+    vec3 lightToPos = u_perPass.lights[0].position-p;
+    float shadowFactor = ShadowCalculationCube(lightToPos);
     color = vec4(diffuse * shadowFactor,1.0) * vColor.w + vec4(specular * shadowFactor,1.0);
+
+    /*float far_plane = 50.0;
+    float closestDepth = texture(shadowMap, lightToPos).r;
+    color = vec4(vec3(closestDepth / far_plane), 1.0); */
 }
 
 // Diffuse response of material
@@ -172,7 +176,7 @@ vec4 getLightColor(LightSource l, vec3 p){
 
 // http://ogldev.atspace.co.uk/www/tutorial42/tutorial42.html
 // https://learnopengl.com/#!Advanced-Lighting/Shadows/Shadow-Mapping
-float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
+/*float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 {
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -197,6 +201,25 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     if(dotNL < 0.0) {
         shadow = 1.0;
     }
+
+    return shadow;
+}  */
+
+// http://ogldev.atspace.co.uk/www/tutorial42/tutorial42.html
+// https://learnopengl.com/#!Advanced-Lighting/Shadows/Point-Shadows
+float ShadowCalculationCube(vec3 lightToPos)
+{
+    // TODO: send this through uniform
+    float far_plane = 50.0;
+    // use the light to fragment vector to sample from the depth map    
+    float closestDepth = texture(shadowMap, lightToPos).r;
+    // it is currently in linear range between [0,1]. Re-transform back to original value
+    closestDepth *= far_plane;
+    // now get current linear depth as the length between the fragment and light position
+    float currentDepth = length(lightToPos);
+    // now test for shadows
+    float bias = 0.05; 
+    float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.3;
 
     return shadow;
 }  

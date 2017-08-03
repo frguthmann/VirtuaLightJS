@@ -25,14 +25,12 @@ layout(location = 2) in vec4 color;
 out highp vec4 v_view ;
 out highp vec3 vNormal;
 out highp vec4 vColor;
-out highp vec4 vFragPosLightSpace;
 
 void main(void) {
 
     v_view  = u_perDraw.transform.uMVMatrix * vec4(position, 1.0);
     vNormal = (u_perDraw.transform.uNormalMatrix * vec4(normal, 0.0)).xyz;
     vColor  = color;
-    vFragPosLightSpace = u_perDraw.transform.uDepthMVP * vec4(position, 1.0);
 
     gl_Position = u_perDraw.transform.uPMatrix * v_view;
     

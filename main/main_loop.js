@@ -3,7 +3,6 @@ var depthVP;
 
 function drawScene() {
     stats.begin();
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // mvMatrix contains the position of the camera, move it here
     if(camera.shouldSetup){
@@ -14,6 +13,51 @@ function drawScene() {
     // Compute light positions relative to this camera and update UBO
     updateLightsUniformBuffer();
 
+    
+    // Pass 1: Depth    
+    // Generate light ortho proj
+    gl.cullFace(gl.FRONT);
+    var proj = makePerspective(90.0, canvas.clientWidth/canvas.clientHeight, camera.nearPlane, camera.farPlane);
+    gl.clearColor(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+    
+    for (var i = 0 ; i < 6 ; i++) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, camera.cameraDirections[i].cubemapFace, cubeMap, 0);
+        /*gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+        gl.readBuffer(gl.COLOR_ATTACHMENT0);*/
+       
+        //gl.clear(gl.DEPTH_BUFFER_BIT | gl.COLOR_BUFFER_BIT); 
+        gl.clear(gl.DEPTH_BUFFER_BIT); 
+
+        var lightSpaceMatrix = makeLookAtVector(lights[0].position.xyz(), camera.cameraDirections[i].target, camera.cameraDirections[i].up);
+        depthVP = proj.multiply(lightSpaceMatrix);
+        gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
+        // Bind program
+        gl.useProgram(depthProgram);    
+        drawAllObjectsDepth();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        
+    }
+
+    //orthoDepthPass();
+    //debugDrawOnQuad(depthMap);
+
+    gl.cullFace(gl.BACK);
+    // 2. then render scene as normal with shadow mapping (using depth map)
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+    gl.clearColor(0.0, 0.0, 1.0, 0.1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(shaderProgram);
+    gl.uniform1i(shadowMapUniform, 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMap);
+    drawAllObjects();
+
+    requestAnimationFrame(drawScene);
+    stats.end();
+}
+
+function orthoDepthPass(){
     // Pass 1: Depth    
     // Generate light ortho proj
     var ortho = 10.0;
@@ -26,7 +70,6 @@ function drawScene() {
         
         gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
         gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
-        gl.enable(gl.DEPTH_TEST); // Need to write depth
         gl.clear(gl.DEPTH_BUFFER_BIT);
         // Bind program
         gl.useProgram(depthProgram);    
@@ -35,23 +78,10 @@ function drawScene() {
 
         //debugDrawOnQuad(depthMap);
     //}
-
-    gl.cullFace(gl.BACK);
-    // 2. then render scene as normal with shadow mapping (using depth map)
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.clearColor(0.0, 0.0, 1.0, 0.1);
-    gl.useProgram(shaderProgram);
-    gl.uniform1i(shadowMapUniform, 0);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, depthMap);
-    drawAllObjects();
-
-    requestAnimationFrame(drawScene);
-    stats.end();
 }
 
 function debugDrawOnQuad(texture){
+    gl.cullFace(gl.BACK);
     gl.clearColor(0.0, 0.0, 1.0, 0.1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     // Quad for debug

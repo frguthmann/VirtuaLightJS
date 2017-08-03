@@ -71,4 +71,15 @@ class Camera {
         this.camTheta+=phi;
         this.shouldSetup = true;
     }
+
+    addCubeMapDirections(){
+        this.cameraDirections = [
+            { cubemapFace : gl.TEXTURE_CUBE_MAP_POSITIVE_X, target : $V([ 1.0,  0.0,  0.0]), up : $V([0.0, -1.0,  0.0]) },
+            { cubemapFace : gl.TEXTURE_CUBE_MAP_NEGATIVE_X, target : $V([-1.0,  0.0,  0.0]), up : $V([0.0, -1.0,  0.0]) },
+            { cubemapFace : gl.TEXTURE_CUBE_MAP_POSITIVE_Y, target : $V([ 0.0,  1.0,  0.0]), up : $V([0.0,  0.0, -1.0]) },
+            { cubemapFace : gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, target : $V([ 0.0, -1.0,  0.0]), up : $V([0.0,  0.0,  1.0]) },
+            { cubemapFace : gl.TEXTURE_CUBE_MAP_POSITIVE_Z, target : $V([ 0.0,  0.0,  1.0]), up : $V([0.0, -1.0,  0.0]) },
+            { cubemapFace : gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, target : $V([ 0.0,  0.0, -1.0]), up : $V([0.0, -1.0,  0.0]) }
+        ];
+    }
 }

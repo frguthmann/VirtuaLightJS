@@ -2,11 +2,13 @@
 var gl;
 // Main shader program
 var shaderProgram;
-var depthProgram;
 // Depth shader used for shadow maps
+var depthProgram;
+
 var shadowSize = {SHADOW_WIDTH : 1024, SHADOW_HEIGHT : 1024};   // 640 * 480
 var depthMapFBO;
 var depthMap;
+var cubeMap;
 var depthVaos = [];
 var quadVertexArray;
 var drawUniformDepthLocation;
@@ -122,12 +124,14 @@ function start() {
         initDepthVAO(verticesBuffer, verticesIndexBuffer);
     }
 
+    // Uniform for shadow maps 
+    shadowMapUniform = gl.getUniformLocation(shaderProgram, 'shadowMap');
+
     // Init quad shaders
     quad_vertex_shader = quad_vertex_shader.replace(/^\s+|\s+$/g, '');
     quad_fragment_shader = quad_fragment_shader.replace(/^\s+|\s+$/g, '');
     quadProgram = createProgram(gl, quad_vertex_shader, quad_fragment_shader);
     drawUniformDepthLocation = gl.getUniformLocation(quadProgram, 'depthMap');
-    shadowMapUniform = gl.getUniformLocation(shaderProgram, 'shadowMap');
     initQuad();
 
     // Display GUI
@@ -144,21 +148,33 @@ function start() {
     // Generate depth texture
     depthMap = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
-    gl.texImage2D(gl.TEXTURE_2D,
-        0,
-        gl.DEPTH_COMPONENT32F,      // uint16 vs float32?
-        shadowSize.SHADOW_WIDTH,
-        shadowSize.SHADOW_HEIGHT,
-        0,
-        gl.DEPTH_COMPONENT,
-        gl.FLOAT,
-        null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);  
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT32F,
+        shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT, 0,
+        gl.DEPTH_COMPONENT, gl.FLOAT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    /*gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);*/
+
+    // Generate the cubemap
+    cubeMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMap);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    camera.addCubeMapDirections();
+
+    // This extension is needed for the R32F format to be renderable.
+    //var ext = gl.getExtension('EXT_color_buffer_float');
+    for (var i = 0 ; i < 6 ; i++) {
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.DEPTH_COMPONENT32F,
+            shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT, 0,
+            gl.DEPTH_COMPONENT, gl.FLOAT, null);
+    }
 
     // Generate frame buffer
     depthMapFBO = gl.createFramebuffer();
@@ -390,7 +406,7 @@ function initDepthVAO(verticesBuffer, verticesIndexBuffer){
 }
 
 function createMatrixTransforms(){
-    pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
+    pMatrix = makePerspective(camera.fovAngle, canvas.clientWidth/canvas.clientHeight, camera.nearPlane, camera.farPlane);
     nMatrix  = Matrix.I(4);
     // mvMatrix + nMatrix + pMatrix
     transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(Matrix.I(4).flatten()));

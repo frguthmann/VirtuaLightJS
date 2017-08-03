@@ -141,7 +141,6 @@ function start() {
     depth_fragment_shader = depth_fragment_shader.replace(/^\s+|\s+$/g, '');
     depthProgram = createProgram(gl, depth_vertex_shader, depth_fragment_shader);
 
-
     // Generate depth texture
     depthMap = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
@@ -163,15 +162,17 @@ function start() {
 
     // Generate frame buffer
     depthMapFBO = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
-    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer(gl.NONE);
     
-    var status = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER);
+    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (status != gl.FRAMEBUFFER_COMPLETE) {
         console.log('fb status: ' + status.toString(16));
         return;
     }
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     // Draw the scene
     drawScene();

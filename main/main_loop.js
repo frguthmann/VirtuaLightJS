@@ -25,13 +25,13 @@ function drawScene() {
         depthVP = proj.multiply(lightSpaceMatrix);
         
         gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthMapFBO);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
         gl.enable(gl.DEPTH_TEST); // Need to write depth
         gl.clear(gl.DEPTH_BUFFER_BIT);
         // Bind program
         gl.useProgram(depthProgram);    
         drawAllObjectsDepth();
-        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
         //debugDrawOnQuad(depthMap);
     //}

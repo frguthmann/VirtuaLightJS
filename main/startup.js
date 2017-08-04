@@ -1,16 +1,21 @@
 // Webgl program
 var gl;
-// Main shader program
+// Shader programs
 var shaderProgram;
 var depthProgram;
-// Depth shader used for shadow maps
+
+// Shadowmap size
 var shadowSize = {SHADOW_WIDTH : 1024, SHADOW_HEIGHT : 1024};   // 640 * 480
+// Shadowmap FBO
 var depthMapFBO;
+// Shadowmap texture
 var depthMap;
-var depthVaos = [];
+// Uniform to update shadow map location in fragment shader
+var shadowMapUniform;
+
+// Debug quads
 var quadVertexArray;
 var drawUniformDepthLocation;
-var shadowMapUniform;
 
 // Main canvas we're drawing in
 var canvas;
@@ -30,11 +35,13 @@ var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
 // VAOs
 var vaos = [];
+var depthVaos = [];
 
 // Contains matrices: projection, modelView and normals
 var transforms;
 // Contains the geometry and material properties of the object
 var meshes = [];
+// Contains every renderable object, including lights debug models 
 var entities = [];
 // Not in the mesh attribute but still necessary
 var colors = [];
@@ -59,30 +66,25 @@ function start() {
 
     // Only continue if WebGL is available and working
     if (!gl) {
-    return;
+        return;
     }
 
     // Enable depth testing
     gl.enable(gl.DEPTH_TEST);
     // Near things obscure far things
     gl.depthFunc(gl.LEQUAL);
-    // Enable ulling 
+    // Enable culling 
     gl.enable(gl.CULL_FACE);
     // Cull only back faces
     gl.cullFace(gl.BACK);
-    // Set clear color to white, fully opaque
+    // Set clear color to light blue
     gl.clearColor(0.0, 0.0, 1.0, 0.1);
     // Clear the color as well as the depth buffer.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Initiate shaders
     initShaders();
-
-    // Load obj file:
-    //mesh = new Mesh($V([0.1,0.2,0.3,1.0]),$V([0.5,0.6,0.7]),80.0,0.1,0.91); //Mesh($V([1.0,0.766,0.336,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
-    //mesh = new Mesh($V([0.8,0.8,0.8,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,0.91);
     
-    // Load and transform the rhino object
     // Load and transform the rhino object
     var mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20);
     mesh.loadOFF(rhinojs);
@@ -106,6 +108,7 @@ function start() {
     // Fill the uniform buffers
     initUBOs();
 
+    // Create VAOs and data buffers
     for(var i=0; i<entities.length; i++){
         var verticesBuffer = gl.createBuffer();
         var verticesIndexBuffer = gl.createBuffer();
@@ -122,13 +125,8 @@ function start() {
         initDepthVAO(verticesBuffer, verticesIndexBuffer);
     }
 
-    // Init quad shaders
-    quad_vertex_shader = quad_vertex_shader.replace(/^\s+|\s+$/g, '');
-    quad_fragment_shader = quad_fragment_shader.replace(/^\s+|\s+$/g, '');
-    quadProgram = createProgram(gl, quad_vertex_shader, quad_fragment_shader);
-    drawUniformDepthLocation = gl.getUniformLocation(quadProgram, 'depthMap');
-    shadowMapUniform = gl.getUniformLocation(shaderProgram, 'shadowMap');
-    initQuad();
+    // Debug quads
+    //initQuad();
 
     // Display GUI
     initGui();
@@ -136,89 +134,12 @@ function start() {
     // Activate mouse / keyboard input
     initInputs();
 
-    // Init depth shaders
-    depth_vertex_shader = depth_vertex_shader.replace(/^\s+|\s+$/g, '');
-    depth_fragment_shader = depth_fragment_shader.replace(/^\s+|\s+$/g, '');
-    depthProgram = createProgram(gl, depth_vertex_shader, depth_fragment_shader);
-
-    // Generate depth texture
-    depthMap = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, depthMap);
-    gl.texImage2D(gl.TEXTURE_2D,
-        0,
-        gl.DEPTH_COMPONENT32F,      // uint16 vs float32?
-        shadowSize.SHADOW_WIDTH,
-        shadowSize.SHADOW_HEIGHT,
-        0,
-        gl.DEPTH_COMPONENT,
-        gl.FLOAT,
-        null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);  
-
-    // Generate frame buffer
-    depthMapFBO = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
-    gl.drawBuffers([gl.NONE]);
-    gl.readBuffer(gl.NONE);
-    
-    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (status != gl.FRAMEBUFFER_COMPLETE) {
-        console.log('fb status: ' + status.toString(16));
-        return;
-    }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // Load depth shaders, generate depth texture and framebuffer to compute shadow maps
+    initShadowMapFrameBuffer();
 
     // Draw the scene
     drawScene();
 
-}
-
-function initQuad(){
-    var quadPositions = new Float32Array([
-        -1.0, -1.0,
-         1.0, -1.0,
-         1.0,  1.0,
-         1.0,  1.0,
-        -1.0,  1.0,
-        -1.0, -1.0
-    ]);
-    var quadVertexPosBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPosBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, quadPositions, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    var quadTexcoords = new Float32Array([
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        1.0, 1.0,
-        0.0, 1.0,
-        0.0, 0.0
-    ]);
-    var quadVertexTexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, quadTexcoords, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-
-    quadVertexArray = gl.createVertexArray();
-    gl.bindVertexArray(quadVertexArray);
-    var drawVertexPosLocation = 0; // set with GLSL layout qualifier
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPosBuffer);
-    gl.vertexAttribPointer(drawVertexPosLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(drawVertexPosLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    var drawVertexTexLocation = 4; // set with GLSL layout qualifier
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTexBuffer);
-    gl.vertexAttribPointer(drawVertexTexLocation, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(drawVertexTexLocation);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    gl.bindVertexArray(null);
 }
 
 function initShaders() {
@@ -387,6 +308,104 @@ function initDepthVAO(verticesBuffer, verticesIndexBuffer){
 
     gl.bindVertexArray(null);
     depthVaos.push(vertexArray);
+}
+
+function initQuad(){
+    // Init quad shaders
+    quad_vertex_shader = quad_vertex_shader.replace(/^\s+|\s+$/g, '');
+    quad_fragment_shader = quad_fragment_shader.replace(/^\s+|\s+$/g, '');
+    quadProgram = createProgram(gl, quad_vertex_shader, quad_fragment_shader);
+    drawUniformDepthLocation = gl.getUniformLocation(quadProgram, 'depthMap');
+
+    var quadPositions = new Float32Array([
+        -1.0, -1.0,
+         1.0, -1.0,
+         1.0,  1.0,
+         1.0,  1.0,
+        -1.0,  1.0,
+        -1.0, -1.0
+    ]);
+    var quadVertexPosBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPosBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, quadPositions, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    var quadTexcoords = new Float32Array([
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
+        1.0, 1.0,
+        0.0, 1.0,
+        0.0, 0.0
+    ]);
+    var quadVertexTexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, quadTexcoords, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+
+    quadVertexArray = gl.createVertexArray();
+    gl.bindVertexArray(quadVertexArray);
+    var drawVertexPosLocation = 0; // set with GLSL layout qualifier
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPosBuffer);
+    gl.vertexAttribPointer(drawVertexPosLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(drawVertexPosLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    var drawVertexTexLocation = 4; // set with GLSL layout qualifier
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexTexBuffer);
+    gl.vertexAttribPointer(drawVertexTexLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(drawVertexTexLocation);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.bindVertexArray(null);
+}
+
+function initShadowMapFrameBuffer(){
+    // Init depth shaders for shadow maps
+    depth_vertex_shader = depth_vertex_shader.replace(/^\s+|\s+$/g, '');
+    depth_fragment_shader = depth_fragment_shader.replace(/^\s+|\s+$/g, '');
+    depthProgram = createProgram(gl, depth_vertex_shader, depth_fragment_shader);
+
+    // If creating the shader program failed, alert
+    if (!gl.getProgramParameter(depthProgram, gl.LINK_STATUS)) {
+        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(depthProgram));
+    }
+
+    // Get shadow map uniform
+    shadowMapUniform = gl.getUniformLocation(shaderProgram, 'shadowMap');
+    // Update it once and for all
+    gl.uniform1i(shadowMapUniform, 0);
+
+    // Generate depth texture
+    depthMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, depthMap);
+    gl.texImage2D(gl.TEXTURE_2D,
+        0,
+        gl.DEPTH_COMPONENT32F,      // uint16 vs float32?
+        shadowSize.SHADOW_WIDTH,
+        shadowSize.SHADOW_HEIGHT,
+        0,
+        gl.DEPTH_COMPONENT,
+        gl.FLOAT,
+        null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);  
+
+    // Generate frame buffer
+    depthMapFBO = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depthMap, 0);
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer(gl.NONE);
+    
+    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (status != gl.FRAMEBUFFER_COMPLETE) {
+        console.log('fb status: ' + status.toString(16));
+        return;
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
 function createMatrixTransforms(){

@@ -1,9 +1,10 @@
 var scene = {mode : 4, mvMatrixStack : []};
 var depthVP;
+var ortho = 10.0;
+var proj = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
 
 function drawScene() {
     stats.begin();
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // mvMatrix contains the position of the camera, move it here
     if(camera.shouldSetup){
@@ -14,41 +15,47 @@ function drawScene() {
     // Compute light positions relative to this camera and update UBO
     updateLightsUniformBuffer();
 
-    // Pass 1: Depth    
-    // Generate light ortho proj
-    var ortho = 10.0;
-    var proj = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
-    gl.cullFace(gl.FRONT);
-    // Generate light view
-    //for(var i=0; i<lights.length; i++){
-        var lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-        depthVP = proj.multiply(lightSpaceMatrix);
-        
-        gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
-        gl.enable(gl.DEPTH_TEST); // Need to write depth
-        gl.clear(gl.DEPTH_BUFFER_BIT);
-        // Bind program
-        gl.useProgram(depthProgram);    
-        drawAllObjectsDepth();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // Pass 1: Render depth map   
+    computeDepthMap(); 
 
-        //debugDrawOnQuad(depthMap);
-    //}
-
-    gl.cullFace(gl.BACK);
-    // 2. then render scene as normal with shadow mapping (using depth map)
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.clearColor(0.0, 0.0, 1.0, 0.1);
-    gl.useProgram(shaderProgram);
-    gl.uniform1i(shadowMapUniform, 0);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, depthMap);
-    drawAllObjects();
+    // Pass 2: Render lighting
+    render();
+    
+    // debugDrawOnQuad();
 
     requestAnimationFrame(drawScene);
     stats.end();
+}
+
+function computeDepthMap(){
+    // Activate front face culling to remove shadowmaps artifacts
+    gl.cullFace(gl.FRONT);
+    // Generate light view-projection matrix
+    var lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    depthVP = proj.multiply(lightSpaceMatrix);
+    // Update viewport to match texture size
+    gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
+    
+    // Render depth map to texture
+    gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(depthProgram);    
+    drawAllObjectsDepth();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+}
+
+function render(){
+    // Get back to backface culling for normal rendering
+    gl.cullFace(gl.BACK);
+    // Reload original viewport
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // Use lighting program
+    gl.useProgram(shaderProgram);
+    // Activate and use depth texture
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, depthMap);
+    drawAllObjects();
 }
 
 function debugDrawOnQuad(texture){
@@ -85,7 +92,7 @@ function drawAllObjects(){
         // The mvMatrix will be changed for each object, we need to store the original state
         mvPushMatrix();
 
-        // TODO: Change lastUpdateTime to entity value
+        // Handle automatic rotation
         if(entities[i].isRotating == true){
             rotateEntity(i); 
         }else{

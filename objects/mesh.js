@@ -1,11 +1,10 @@
 class Mesh {
-    // Need a vec4 for diffuse for padding reasons. specular can be a vec3 as intensity fills the blank space
-    constructor(diffuse = $V([1.0,0.0,0.0,1.0]), specular = $V([1.0,1.0,1.0]), shininess = 80.0, roughness = 0.1, fresnel=0.91) {
-        this.diffuse = diffuse;
-        this.specular = specular;
-        this.shininess = shininess;
-        this.roughness = roughness;
+    // 
+    constructor(albedo = $V([1.0,0.0,0.0,1.0]), fresnel=0.91, roughness = 0.1, ao = 1.0) {
+        this.albedo = albedo;
         this.fresnel = fresnel;
+        this.roughness = roughness;
+        this.ao = ao;
         this.firstPlaneVertex = 0;
         this.firstPlaneTriangle = 0;
         this.clear();

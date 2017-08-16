@@ -57,7 +57,10 @@ function start() {
     canvas = document.getElementById('glCanvas');
     
     // Initialize the GL context
-    gl = canvas.getContext('webgl2', { antialias: true });
+    gl = canvas.getContext('webgl2', 
+        {   
+            premultipliedAlpha: false 
+        });
     var isWebGL2 = !!gl;
     if(!isWebGL2) {
         alert("Your browser does not support WebGL2 :/");
@@ -86,14 +89,15 @@ function start() {
     initShaders();
     
     // Load and transform the rhino object
-    var mesh = new Mesh($V([0.0,0.0,0.0,1.0]),$V([1.0,223.0/255.0,140.0/255.0]),80.0,0.1,20);
+    var mesh = new Mesh($V([0.8,0.8,0.8,1.0]),0.94, 0.10);
     mesh.loadOFF(rhinojs);
     entities.push(new Entity(mesh, "Rhino", Matrix.I(4), new MeshMaterial(mesh)));
+    console.log(Math.sqrt(cubeSize*cubeSize*3));
     entities[entities.length-1].pos = [1,-0.5,0];
     entities[entities.length-1].rot = [90,0];
     
     // Load and transform the man object
-    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.2,0.91);
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
     mesh.loadOFF(manjs);
     entities.push(new Entity(mesh, "Man", Matrix.I(4), new MeshMaterial(mesh)));
     entities[entities.length-1].pos = [-1,-0.32,-0.3];
@@ -101,7 +105,7 @@ function start() {
     entities[entities.length-1].scale = 0.45;
 
     // Create a plan underneath both objects
-    mesh = new Mesh($V([1.0,1.0,1.0,1.0]),$V([1.0,1.0,1.0]),80.0,0.95,0.10);
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.10,0.95);
     mesh.createPlan(3.0, 50);
     entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));
 
@@ -488,7 +492,7 @@ function enableLightDisplay(lightPos, i){
 function generateColors(mesh){
     var col = [];
     for(var i=0; i<mesh.m_positions.length; i++){
-        col.push(mesh.diffuse);
+        col.push(mesh.albedo);
     }
     return flattenObject(col);
 }

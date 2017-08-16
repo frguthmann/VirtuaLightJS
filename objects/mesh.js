@@ -5,8 +5,6 @@ class Mesh {
         this.fresnel = fresnel;
         this.roughness = roughness;
         this.ao = ao;
-        this.firstPlaneVertex = 0;
-        this.firstPlaneTriangle = 0;
         this.clear();
     }
 
@@ -56,6 +54,18 @@ class Mesh {
 
         for(var i = 0; i < positionsSize; i++){
             this.m_positions[i] = c.add((this.m_positions[i]).subtract(c).multiply( 1.0 / maxD)); // c + (p-c)*s
+        }
+    }
+
+    computeSphericalUV() {
+
+        this.m_UV = [];
+        var positionSize = this.m_positions.length;
+        for(var i=0; i<positionSize; i++){
+            var n = (this.m_positions[i]).toUnitVector();
+            var u = Math.atan(n.e(1), n.e(3)) / (2*Math.PI) + 0.5;
+            var v = n.e(2) * 0.5 + 0.5;
+            this.m_UV[i] = $V([u,v]);
         }
     }
 

@@ -56,6 +56,9 @@ vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
 vec4 getLightColor(LightSource l, vec3 p);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
 
+float DigitBin( const int x );
+float PrintValue( const vec2 vStringCoords, const float fValue, const float fMaxDigits, const float fDecimalPlaces );
+
 void main(void) {
     vec3 specular = vec3(0.);
     vec3 LO = vec3(0.);
@@ -92,17 +95,22 @@ void main(void) {
 
     }
 
-    vec3 ambient = vec3(0.03) * u_perScene.mesh.albedo * u_perScene.mesh.ao;
-    vec3 resultingColor = ambient + LO;
-
-    /*resultingColor = resultingColor / (resultingColor + vec3(1.0));
-    resultingColor = pow(resultingColor, vec3(1.0/2.2));*/
-
     // Shadow computation
     vec3 lightDir = normalize(u_perPass.lights[0].position-p);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, n, lightDir);
+
+    vec3 ambient = vec3(0.03) * u_perScene.mesh.albedo * u_perScene.mesh.ao;
+    vec3 resultingColor = ambient + LO * shadowFactor;
+
+    /*vec2 vFontSize = vec2(8.0, 15.0);
+    resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, u_perScene.mesh.albedo.x, 4.0, 0.0));
+    */
+
+    // Gamma correction
+    resultingColor = resultingColor / (resultingColor + vec3(1.0));
+    resultingColor = pow(resultingColor, vec3(1.0/2.2));
     
-    color = vec4(resultingColor*shadowFactor,1.0);
+    color = vec4(resultingColor,1.0);
 
 }
 
@@ -216,5 +224,41 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 
     return shadow;
 }  
+
+
+//---------------------------------------------------------------
+// number rendering code below by P_Malin
+//
+// https://www.shadertoy.com/view/4sBSWW
+//---------------------------------------------------------------
+
+float DigitBin( const int x )
+{
+    return x==0?480599.0:x==1?139810.0:x==2?476951.0:x==3?476999.0:x==4?350020.0:x==5?464711.0:x==6?464727.0:x==7?476228.0:x==8?481111.0:x==9?481095.0:0.0;
+}
+
+float PrintValue( const vec2 vStringCoords, const float fValue, const float fMaxDigits, const float fDecimalPlaces )
+{
+    if ((vStringCoords.y < 0.0) || (vStringCoords.y >= 1.0)) return 0.0;
+    float fLog10Value = log2(abs(fValue)) / log2(10.0);
+    float fBiggestIndex = max(floor(fLog10Value), 0.0);
+    float fDigitIndex = fMaxDigits - floor(vStringCoords.x);
+    float fCharBin = 0.0;
+    if(fDigitIndex > (-fDecimalPlaces - 1.01)) {
+        if(fDigitIndex > fBiggestIndex) {
+            if((fValue < 0.0) && (fDigitIndex < (fBiggestIndex+1.5))) fCharBin = 1792.0;
+        } else {        
+            if(fDigitIndex == -1.0) {
+                if(fDecimalPlaces > 0.0) fCharBin = 2.0;
+            } else {
+                float fReducedRangeValue = fValue;
+                if(fDigitIndex < 0.0) { fReducedRangeValue = fract( fValue ); fDigitIndex += 1.0; }
+                float fDigitValue = (abs(fReducedRangeValue / (pow(10.0, fDigitIndex))));
+                fCharBin = DigitBin(int(floor(mod(fDigitValue, 10.0))));
+            }
+        }
+    }
+    return floor(mod((fCharBin / pow(2.0, floor(fract(vStringCoords.x) * 4.0) + (floor(vStringCoords.y * 5.0) * 4.0))), 2.0));
+}
 
 `;

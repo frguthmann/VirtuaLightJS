@@ -59,7 +59,7 @@ function start() {
     // Initialize the GL context
     gl = canvas.getContext('webgl2', 
         {   
-            premultipliedAlpha: false 
+            antialias: true 
         });
     var isWebGL2 = !!gl;
     if(!isWebGL2) {
@@ -89,25 +89,48 @@ function start() {
     initShaders();
     
     // Load and transform the rhino object
-    var mesh = new Mesh($V([0.8,0.8,0.8,1.0]),0.94, 0.10);
+    /*var mesh = new Mesh($V([0.8,0.8,0.8,1.0]),0.94, 0.10);
     mesh.loadOFF(rhinojs);
     entities.push(new Entity(mesh, "Rhino", Matrix.I(4), new MeshMaterial(mesh)));
     console.log(Math.sqrt(cubeSize*cubeSize*3));
     entities[entities.length-1].pos = [1,-0.5,0];
-    entities[entities.length-1].rot = [90,0];
+    entities[entities.length-1].rot = [90,0];*/
     
     // Load and transform the man object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
-    mesh.loadOFF(manjs);
-    entities.push(new Entity(mesh, "Man", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [-1,-0.32,-0.3];
+    mesh.loadOFF(smooth_spherejs);
+    mesh.computeSphericalUV();
+    entities.push(new Entity(mesh, "Sphere", Matrix.I(4), new MeshMaterial(mesh)));
+    //entities[entities.length-1].pos = [-1,-0.32,-0.3];
     entities[entities.length-1].rot = [180,0];
-    entities[entities.length-1].scale = 0.45;
+    //entities[entities.length-1].scale = 0.45;
+
+    var tester=new Image();
+    var rustTexture = gl.createTexture();
+    var imgUrl = "rust/rustediron2_basecolor.png"
+    tester.onload=function() {
+        console.log("Loaded successfully" + imgUrl);
+
+        gl.bindTexture(gl.TEXTURE_2D, rustTexture);
+        // set the texture wrapping/filtering options (on the currently bound texture object)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        // load and generate the texture
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, tester.width, tester.height, 0, gl.RGB, gl.UNSIGNED_BYTE, tester);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+    };
+    tester.onerror=function() { // when .png failed
+        console.log("Couldn't load " + imgUrl);   
+    };
+    tester.src=imgUrl; // execute the test
 
     // Create a plan underneath both objects
-    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.10,0.95);
+    /*mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.10,0.95);
     mesh.createPlan(3.0, 50);
-    entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));
+    entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));*/
 
     // Fill the uniform buffers
     initUBOs();

@@ -56,8 +56,8 @@ function render(){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
 
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, rustTexture);
+    /*gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, rustTexture);*/
 
     drawAllObjects();
 }
@@ -108,6 +108,35 @@ function drawAllObjects(){
 
         // Compute and update transforms UBOs according to mvMatrix
         updateMatrixUniformBuffer(i);
+
+        
+        if(entities[i].mat2){
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.albedo);
+
+            gl.activeTexture(gl.TEXTURE3);
+            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.roughness);
+
+            gl.activeTexture(gl.TEXTURE4);
+            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.ao);
+
+            gl.activeTexture(gl.TEXTURE5);
+            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.fresnel);
+
+        }else{
+            // Put default white texture
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
+
+            gl.activeTexture(gl.TEXTURE3);
+            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
+
+            gl.activeTexture(gl.TEXTURE4);
+            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
+
+            gl.activeTexture(gl.TEXTURE5);
+            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
+        }
 
         // Bind VAO
         gl.bindVertexArray(vaos[i]);

@@ -41,7 +41,12 @@ uniform PerPass
 } u_perPass;
 
 uniform sampler2DShadow shadowMap;
-uniform sampler2D textureMap;
+
+uniform sampler2D albedoMap;
+uniform sampler2D normalMap;
+uniform sampler2D roughnessMap;
+uniform sampler2D aoMap;
+uniform sampler2D fresnelMap;
 
 in highp vec4 v_view ;
 in highp vec3 vNormal;
@@ -51,7 +56,6 @@ in highp vec2 vTexCoords;
 
 out vec4 color;
 
-vec3 lambertDiffuse();
 vec3 getIntensityFromPosition(LightSource l, vec3 p);
 vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, int distriNbr);
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
@@ -70,9 +74,14 @@ void main(void) {
 
     int nbLights = int(u_perPass.nbLights);
 
+    vec3 albedo = pow(texture(albedoMap, vTexCoords).rgb, vec3(2.2));
+    float roughness = texture(roughnessMap, vTexCoords).r;
+    float ao = texture(aoMap, vTexCoords).r;
+    float fresnel = texture(fresnelMap, vTexCoords).r;
+
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 
-    f0 = mix(f0, u_perScene.mesh.albedo, u_perScene.mesh.fresnel);
+    f0 = mix(f0, albedo, fresnel);
 
     for (int i=0 ; i<nbLights; i++){
 
@@ -87,13 +96,13 @@ void main(void) {
 
         vec3 kS = fresnelSchlick(incidentVector, excidentVector, f0);
         vec3 kD = vec3(1.0) - kS;
-        kD *= 1.0 - u_perScene.mesh.fresnel;
+        kD *= 1.0 - fresnel;
 
         specular = microFacetSpecular(incidentVector,excidentVector,n,kS,2);
 
         vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],p);
 
-        LO += (kD * lambertDiffuse() + specular) * radiance * directionnalAttenuation;
+        LO += (kD * albedo / M_PI + specular) * radiance * directionnalAttenuation;
 
     }
 
@@ -101,11 +110,11 @@ void main(void) {
     vec3 lightDir = normalize(u_perPass.lights[0].position-p);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, n, lightDir);
 
-    vec3 ambient = vec3(0.03) * u_perScene.mesh.albedo * u_perScene.mesh.ao;
+    vec3 ambient = vec3(0.03) * albedo * u_perScene.mesh.ao;
     vec3 resultingColor = ambient + LO * shadowFactor;
 
     /*vec2 vFontSize = vec2(8.0, 15.0);
-    resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, u_perScene.mesh.albedo.x, 4.0, 0.0));
+    resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, albedo.x, 4.0, 0.0));
     */
 
     // Gamma correction
@@ -114,13 +123,8 @@ void main(void) {
     
     color = vec4(resultingColor,1.0);
 
-    color = color * texture(textureMap, vTexCoords);
+    //color = color * texture(albedoMap, vTexCoords);
 
-}
-
-// Diffuse response of material
-vec3 lambertDiffuse(){
-    return u_perScene.mesh.albedo / M_PI;
 }
 
 // Light intensity attenuation

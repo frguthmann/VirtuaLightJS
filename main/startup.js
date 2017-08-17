@@ -13,8 +13,6 @@ var depthMap;
 // Uniform to update shadow map location in fragment shader
 var shadowMapUniform;
 
-var rustTexture;
-
 // Debug quads
 var quadVertexArray;
 var drawUniformDepthLocation;
@@ -35,6 +33,7 @@ var nMatrix;
 var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
 var uniformPerSceneBuffer;
+
 // VAOs
 var vaos = [];
 var depthVaos = [];
@@ -107,44 +106,31 @@ function start() {
     entities[entities.length-1].rot = [180,0];
     entities[entities.length-1].scale = 0.45;
 
-    /*mesh = new Mesh($V([1.0,1.0,1.0,1.0]),0.25,0.2);
-    mesh.makeSphere(64);
-    entities.push(new Entity(mesh, "Sphere", Matrix.I(4), new MeshMaterial(mesh)));*/
-
     // Create a plan underneath both objects
-    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.10,0.95);
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.00,0.95);
     mesh.makePlan(3.0, 50);
     entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));
+    
+    material = new MeshMaterial2( shaderProgram,
+        "textures/floor/spaced-tiles1-albedo.png",
+        "textures/floor/spaced-tiles1-normal.png",
+        "textures/floor/spaced-tiles1-rough.png",
+        "textures/floor/spaced-tiles1-ao.png",);
+    entities[entities.length-1].mat2 = material;
 
-     // Create a plan underneath both objects
+    // Create a plan underneath both objects
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Plan2", Matrix.I(4), new MeshMaterial(mesh)));
     entities[entities.length-1].pos = [0,1.2,0];
-
-    var tester=new Image();
-    rustTexture = gl.createTexture();
-    var imgUrl = "rust/rustediron2_basecolor.png"
-    tester.onload=function() {
-        console.log("Loaded successfully" + imgUrl);
-
-        gl.bindTexture(gl.TEXTURE_2D, rustTexture);
-        // set the texture wrapping/filtering options (on the currently bound texture object)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        // load and generate the texture
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, tester.width, tester.height, 0, gl.RGB, gl.UNSIGNED_BYTE, tester);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.bindTexture(gl.TEXTURE_2D, null);
-        gl.uniform1i(gl.getUniformLocation(shaderProgram, "textureMap"), 1);
-    };
-    tester.onerror=function() { // when .png failed
-        console.log("Couldn't load " + imgUrl);   
-    };
-    tester.src=imgUrl; // execute the test
-
+    
+    material = new MeshMaterial2( shaderProgram,
+        "textures/rust/rustediron2_basecolor.png",
+        "textures/rust/rustediron2_normal.png",
+        "textures/rust/rustediron2_roughness.png",
+        "textures/rust/rustediron2_ao.png",
+        "textures/rust/rustediron2_metallic.png");
+    entities[entities.length-1].mat2 = material;
 
     // Fill the uniform buffers
     initUBOs();
@@ -270,7 +256,7 @@ function initUBOs(){
     // Find and link uniform blocks
     var uniformPerDrawLocation = gl.getUniformBlockIndex(shaderProgram, 'PerDraw');
     var uniformPerPassLocation = gl.getUniformBlockIndex(shaderProgram, 'PerPass');
-    var uniformPerSceneLocation = gl.getUniformBlockIndex(shaderProgram, 'PerScene'); 
+    var uniformPerSceneLocation = gl.getUniformBlockIndex(shaderProgram, 'PerScene');  
     gl.uniformBlockBinding(shaderProgram, uniformPerDrawLocation, 0);
     gl.uniformBlockBinding(shaderProgram, uniformPerPassLocation, 1);
     gl.uniformBlockBinding(shaderProgram, uniformPerSceneLocation, 2);
@@ -281,7 +267,7 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
 
-    // Create and bind light to light UBO
+    // Create and bind lights to light_UBO
     var lightData = createLights();
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);

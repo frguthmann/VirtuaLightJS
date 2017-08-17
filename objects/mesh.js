@@ -150,10 +150,10 @@ class Mesh {
         // BACK FACE
         
         // Vertices
-        this.m_positions.push($V([-scale,0,-scale]));
-        this.m_positions.push($V([-scale,0,scale]));
-        this.m_positions.push($V([scale,0,-scale]));
-        this.m_positions.push($V([scale,0,scale]));
+        this.m_positions.push($V([-scale,-0.03,-scale]));
+        this.m_positions.push($V([-scale,-0.03,scale]));
+        this.m_positions.push($V([scale,-0.03,-scale]));
+        this.m_positions.push($V([scale,-0.03,scale]));
 
         // Normals
         this.m_normals.push($V([0,-1,0]));
@@ -172,86 +172,35 @@ class Mesh {
         this.m_triangles.push($V([7,5,6]));
     }
 
-    // https://learnopengl.com/code_viewer_gh.php?code=src/6.pbr/1.2.lighting_textured/lighting_textured.cpp
-    makeSphere2(res){
-        this.clear();
-        for (var y = 0; y <= res; ++y)
-        {
-            for (var x = 0; x <= res; ++x)
-            {
-                var xSegment = x / res;
-                var ySegment = y / res;
-                var xPos = Math.cos(xSegment * 2.0 * Math.PI) * Math.sin(ySegment * Math.PI);
-                var yPos = Math.cos(ySegment * Math.PI);
-                var zPos = Math.sin(xSegment * 2.0 * Math.PI) * Math.sin(ySegment * Math.PI);
-
-                this.m_positions.push($V([xPos, yPos, zPos]));
-                this.m_UV.push($V([xSegment, ySegment]));
-                this.m_normals.push($V([xPos, yPos, zPos]));
-            }
-        }
-
-        var oddRow = false;
-        for (var y = 0; y < res; ++y)
-        {
-            if (!oddRow) // even rows: y == 0, y == 2; and so on
-            {
-                for (var x = 0; x <= res; ++x)
-                {
-                    this.m_triangles.push(y       * (res + 1) + x);
-                    this.m_triangles.push((y + 1) * (res + 1) + x);
-                }
-            }
-            else
-            {
-                for (var x = res; x >= 0; --x)
-                {
-                    this.m_triangles.push((y + 1) * (res + 1) + x);
-                    this.m_triangles.push(y       * (res + 1) + x);
-                }
-            }
-            oddRow = !oddRow;
-        }
-    }
-
     makeSphere(res){
         this.clear();
-        var i =0;
+        res = 4.0;
         for(var a=0; a<res; a++){
 
             for(var b=0; b<res; b++){
 
-                var phi   = a * Math.PI/(res-1);
-                var theta = b * Math.PI*2/(res-1);
+                var phi   = a * Math.PI/(res-1.0);
+                var theta = b * Math.PI*2/(res-1.0);
 
                 // Position
-                var pos = {x : 0, y : 0, z : 0};
-                this.polar2Cartesian(theta,phi,1,pos);
+                var pos = {x : 0.0, y : 0.0, z : 0.0};
+                this.polar2Cartesian(theta,phi,1.0,pos);
 
-                this.m_positions[3*i]   =  pos.x;
-                this.m_positions[3*i+1] =  pos.y;
-                this.m_positions[3*i+2] =  pos.z;
+                this.m_positions.push($V([pos.x, pos.y, pos.z]));
 
-                // Indices des triangles 
-                this.m_triangles[6*i]   = a*res + b;
-                this.m_triangles[6*i+1] = a*res + b + res;
-                this.m_triangles[6*i+2] = a*res + (b+1)%res;
-                this.m_triangles[6*i+3] = a*res + b + res;
-                this.m_triangles[6*i+4] = a*res + res + (b + 1)%res;
-                this.m_triangles[6*i+5] = a*res + (b+1)%res;
+                this.m_triangles.push($V([a*res + b, a*res + b + res, a*res + (b+1.0)%res]));
+                this.m_triangles.push($V([a*res + b + res, a*res + res + (b + 1.0)%res, a*res + (b+1.0)%res]));
 
-                // Normales
-                this.m_normals[3*i]   = pos.x;
-                this.m_normals[3*i+1] = pos.y;
-                this.m_normals[3*i+2] = pos.z;
+                console.log(a*res + b + res);
 
-                // Paramétrisation pour textures
-                this.m_UV[2*i] = a / res;
-                this.m_UV[2*i+1] = b / res;
+                this.m_normals.push($V([pos.x, pos.y, pos.z]));
 
-                i++;
+
+                this.m_UV.push($V([a / res, b / res]));
+
             }
         }
+        this.recomputeNormalsSimple();
     }
 
     polar2Cartesian (phi, theta, r, pos) {

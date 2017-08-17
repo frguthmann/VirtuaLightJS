@@ -13,6 +13,8 @@ var depthMap;
 // Uniform to update shadow map location in fragment shader
 var shadowMapUniform;
 
+var rustTexture;
+
 // Debug quads
 var quadVertexArray;
 var drawUniformDepthLocation;
@@ -98,15 +100,30 @@ function start() {
     
     // Load and transform the man object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
-    mesh.loadOFF(smooth_spherejs);
+    mesh.loadOFF(manjs);
     mesh.computeSphericalUV();
-    entities.push(new Entity(mesh, "Sphere", Matrix.I(4), new MeshMaterial(mesh)));
-    //entities[entities.length-1].pos = [-1,-0.32,-0.3];
+    entities.push(new Entity(mesh, "Man", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [-1,-0.32,-0.3];
     entities[entities.length-1].rot = [180,0];
-    //entities[entities.length-1].scale = 0.45;
+    entities[entities.length-1].scale = 0.45;
+
+    /*mesh = new Mesh($V([1.0,1.0,1.0,1.0]),0.25,0.2);
+    mesh.makeSphere(64);
+    entities.push(new Entity(mesh, "Sphere", Matrix.I(4), new MeshMaterial(mesh)));*/
+
+    // Create a plan underneath both objects
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.10,0.95);
+    mesh.makePlan(3.0, 50);
+    entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));
+
+     // Create a plan underneath both objects
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
+    mesh.makePlan2(1.0);
+    entities.push(new Entity(mesh, "Plan2", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [0,1.2,0];
 
     var tester=new Image();
-    var rustTexture = gl.createTexture();
+    rustTexture = gl.createTexture();
     var imgUrl = "rust/rustediron2_basecolor.png"
     tester.onload=function() {
         console.log("Loaded successfully" + imgUrl);
@@ -121,16 +138,13 @@ function start() {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, tester.width, tester.height, 0, gl.RGB, gl.UNSIGNED_BYTE, tester);
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.uniform1i(gl.getUniformLocation(shaderProgram, "textureMap"), 1);
     };
     tester.onerror=function() { // when .png failed
         console.log("Couldn't load " + imgUrl);   
     };
     tester.src=imgUrl; // execute the test
 
-    // Create a plan underneath both objects
-    /*mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.10,0.95);
-    mesh.createPlan(3.0, 50);
-    entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));*/
 
     // Fill the uniform buffers
     initUBOs();
@@ -141,13 +155,14 @@ function start() {
         var verticesIndexBuffer = gl.createBuffer();
         var verticesNormalBuffer = gl.createBuffer();
         var verticesColorBuffer = gl.createBuffer();
+        var verticesTexCoordsBuffer = gl.createBuffer();
     
         // Create the colors
         var colors = generateColors(entities[i].mesh);
         // Initiate buffers
-        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors);
+        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer, colors);
         // Init VAO
-        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer);
+        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer);
         // Init DepthVAO
         initDepthVAO(verticesBuffer, verticesIndexBuffer);
     }
@@ -217,7 +232,7 @@ function createShader(gl, source, type) {
     return shader;
 }
 
-function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, colors) {
+function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer, colors) {
 
     // Vertex Buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -235,6 +250,12 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
     var normals = new Float32Array(flattenObject(mesh.m_normals));
     gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Texture Buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
+    var texCoords = new Float32Array(flattenObject(mesh.m_UV));
+    gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // Color Buffer
@@ -275,12 +296,13 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer){
+function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer){
 
     // Create buffer location attributes
-    vertexPositionAttribute = 0;
-    vertexNormalAttribute   = 1;
-    vertexColorAttribute    = 2;
+    var vertexPositionAttribute = 0;
+    var vertexNormalAttribute   = 1;
+    var vertexColorAttribute    = 2;
+    var texCoordsAttribute      = 3;
 
     // Fill VAO with the right calls
     var vertexArray = gl.createVertexArray();
@@ -300,6 +322,11 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
     gl.enableVertexAttribArray(vertexColorAttribute); 
     gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+
+    // Send texture coordinates
+    gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
+    gl.enableVertexAttribArray(texCoordsAttribute);   
+    gl.vertexAttribPointer(texCoordsAttribute, 2, gl.FLOAT, false, 0, 0);
     
     // Send indexes
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
@@ -418,7 +445,7 @@ function initShadowMapFrameBuffer(){
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);  
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL); 
 
     // Generate frame buffer
     depthMapFBO = gl.createFramebuffer();
@@ -510,6 +537,9 @@ function enableLightDisplay(lightPos, i){
          1.0,  1.0,  1.0,  1.0 
     ];
     colors = colors.concat(col);
+
+    // DEBUG
+    mesh.computeSphericalUV();
 }
 
 function generateColors(mesh){

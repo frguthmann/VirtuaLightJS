@@ -34,6 +34,7 @@ class Mesh {
         this.m_positions = [];
         this.m_normals   = [];
         this.m_triangles = [];
+        this.m_UV        = [];
     }
 
     centerAndScaleToUnit () {
@@ -79,6 +80,7 @@ class Mesh {
 
         var trianglesSize = this.m_triangles.length;
         for (var i = 0; i < trianglesSize; i++) {
+            //console.log(this.m_triangles[i]);
             var e01 = this.m_positions[this.m_triangles[i].elements[1]].subtract(this.m_positions[this.m_triangles[i].elements[0]]);
             var e02 = this.m_positions[this.m_triangles[i].elements[2]].subtract(this.m_positions[this.m_triangles[i].elements[0]]);
             var n = e01.cross(e02);
@@ -95,14 +97,17 @@ class Mesh {
         }
     }
 
-    createPlan(scale, res){
+    makePlan(scale, res){
 
         var cpt = 0;
         // Let's generate res * res vertices
         for(var i=0; i<res; i++){
             for(var j=0; j<res; j++){
                 // Trust me I'm an engineer, it works.
-                this.m_positions[res*i+j] = $V([-scale + 2.0*scale*i/(res-1.0),-1.25,-scale + 2.0*scale*j/(res-1.0)]);
+                var x = -scale + 2.0*scale*i/(res-1.0);
+                var z = -scale + 2.0*scale*j/(res-1.0);
+                this.m_positions[res*i+j] = $V([x,-1.25,z]);
+                this.m_UV[res*i+j] = $V([(x+scale)/(2*scale), (z+scale)/(2*scale)]);
                 // We need (res-1)*(res-1)*2 triangles
                 if(i<res-1 && j<res-1){
                     this.m_triangles[2*cpt] = $V([res*i+j, res*i+j+1, res*(i+1)+j+1]);
@@ -114,5 +119,146 @@ class Mesh {
 
         this.recomputeNormalsSimple();
     }
+
+    makePlan2(scale){
+
+        // FRONT FACE
+
+        // Vertices
+        this.m_positions.push($V([-scale,0,-scale]));
+        this.m_positions.push($V([-scale,0,scale]));
+        this.m_positions.push($V([scale,0,-scale]));
+        this.m_positions.push($V([scale,0,scale]));
+
+        // Normals
+        this.m_normals.push($V([0,1,0]));
+        this.m_normals.push($V([0,1,0]));
+        this.m_normals.push($V([0,1,0]));
+        this.m_normals.push($V([0,1,0]));
+
+        // UVs
+        this.m_UV.push($V([0,0]));
+        this.m_UV.push($V([0,1]));
+        this.m_UV.push($V([1,0]));
+        this.m_UV.push($V([1,1]));
+
+        // Index
+        this.m_triangles.push($V([2,0,1]));
+        this.m_triangles.push($V([2,1,3]));
+
+        
+        // BACK FACE
+        
+        // Vertices
+        this.m_positions.push($V([-scale,0,-scale]));
+        this.m_positions.push($V([-scale,0,scale]));
+        this.m_positions.push($V([scale,0,-scale]));
+        this.m_positions.push($V([scale,0,scale]));
+
+        // Normals
+        this.m_normals.push($V([0,-1,0]));
+        this.m_normals.push($V([0,-1,0]));
+        this.m_normals.push($V([0,-1,0]));
+        this.m_normals.push($V([0,-1,0]));
+
+        // UVs
+        this.m_UV.push($V([0,0]));
+        this.m_UV.push($V([0,1]));
+        this.m_UV.push($V([1,0]));
+        this.m_UV.push($V([1,1]));
+        
+        // Index
+        this.m_triangles.push($V([5,4,6]));
+        this.m_triangles.push($V([7,5,6]));
+    }
+
+    // https://learnopengl.com/code_viewer_gh.php?code=src/6.pbr/1.2.lighting_textured/lighting_textured.cpp
+    makeSphere2(res){
+        this.clear();
+        for (var y = 0; y <= res; ++y)
+        {
+            for (var x = 0; x <= res; ++x)
+            {
+                var xSegment = x / res;
+                var ySegment = y / res;
+                var xPos = Math.cos(xSegment * 2.0 * Math.PI) * Math.sin(ySegment * Math.PI);
+                var yPos = Math.cos(ySegment * Math.PI);
+                var zPos = Math.sin(xSegment * 2.0 * Math.PI) * Math.sin(ySegment * Math.PI);
+
+                this.m_positions.push($V([xPos, yPos, zPos]));
+                this.m_UV.push($V([xSegment, ySegment]));
+                this.m_normals.push($V([xPos, yPos, zPos]));
+            }
+        }
+
+        var oddRow = false;
+        for (var y = 0; y < res; ++y)
+        {
+            if (!oddRow) // even rows: y == 0, y == 2; and so on
+            {
+                for (var x = 0; x <= res; ++x)
+                {
+                    this.m_triangles.push(y       * (res + 1) + x);
+                    this.m_triangles.push((y + 1) * (res + 1) + x);
+                }
+            }
+            else
+            {
+                for (var x = res; x >= 0; --x)
+                {
+                    this.m_triangles.push((y + 1) * (res + 1) + x);
+                    this.m_triangles.push(y       * (res + 1) + x);
+                }
+            }
+            oddRow = !oddRow;
+        }
+    }
+
+    makeSphere(res){
+        this.clear();
+        var i =0;
+        for(var a=0; a<res; a++){
+
+            for(var b=0; b<res; b++){
+
+                var phi   = a * Math.PI/(res-1);
+                var theta = b * Math.PI*2/(res-1);
+
+                // Position
+                var pos = {x : 0, y : 0, z : 0};
+                this.polar2Cartesian(theta,phi,1,pos);
+
+                this.m_positions[3*i]   =  pos.x;
+                this.m_positions[3*i+1] =  pos.y;
+                this.m_positions[3*i+2] =  pos.z;
+
+                // Indices des triangles 
+                this.m_triangles[6*i]   = a*res + b;
+                this.m_triangles[6*i+1] = a*res + b + res;
+                this.m_triangles[6*i+2] = a*res + (b+1)%res;
+                this.m_triangles[6*i+3] = a*res + b + res;
+                this.m_triangles[6*i+4] = a*res + res + (b + 1)%res;
+                this.m_triangles[6*i+5] = a*res + (b+1)%res;
+
+                // Normales
+                this.m_normals[3*i]   = pos.x;
+                this.m_normals[3*i+1] = pos.y;
+                this.m_normals[3*i+2] = pos.z;
+
+                // Paramétrisation pour textures
+                this.m_UV[2*i] = a / res;
+                this.m_UV[2*i+1] = b / res;
+
+                i++;
+            }
+        }
+    }
+
+    polar2Cartesian (phi, theta, r, pos) {
+        pos.x = r * Math.sin (theta) * Math.cos (phi);
+        pos.y = r * Math.sin (theta) * Math.sin (phi);
+        pos.z = r * Math.cos (theta);
+    }
+
 
 }

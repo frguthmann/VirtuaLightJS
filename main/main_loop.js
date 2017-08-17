@@ -55,6 +55,10 @@ function render(){
     // Activate and use depth texture
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, rustTexture);
+
     drawAllObjects();
 }
 

@@ -41,11 +41,13 @@ uniform PerPass
 } u_perPass;
 
 uniform sampler2DShadow shadowMap;
+uniform sampler2D textureMap;
 
 in highp vec4 v_view ;
 in highp vec3 vNormal;
 in highp vec4 vColor;
 in highp vec4 vFragPosLightSpace;
+in highp vec2 vTexCoords;
 
 out vec4 color;
 
@@ -112,6 +114,8 @@ void main(void) {
     
     color = vec4(resultingColor,1.0);
 
+    color = color * texture(textureMap, vTexCoords);
+
 }
 
 // Diffuse response of material
@@ -122,8 +126,8 @@ vec3 lambertDiffuse(){
 // Light intensity attenuation
 vec3 getIntensityFromPosition(LightSource l, vec3 p){
     float d = distance(l.position,p);
-    // Use intensity instead of 1 maybe?
     float intFromDist = l.intensity / (l.aconst + l.alin*d + l.aquad*d*d);
+    //float intFromDist = 1.0 / (d*d);
     return l.color * intFromDist;
 }
 
@@ -157,8 +161,8 @@ vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 f
     }
     // GGX distribution
     else if(distriNbr==2){
-        // GGX => roughness power 4?
-        float denominator = M_PI * pow(1.0+(roughnessSquared-1.0)*normDotHalfSquared,2.0);
+        // GGX => roughness power 4? I thought it was 2
+        float denominator = M_PI * pow(1.0+(roughnessSquared*roughnessSquared-1.0)*normDotHalfSquared,2.0);
         distribution = roughnessSquared / denominator;
 
         // Boubekeur

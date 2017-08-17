@@ -114,6 +114,9 @@ function drawAllObjects(){
             gl.activeTexture(gl.TEXTURE1);
             gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.albedo);
 
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.normal);
+
             gl.activeTexture(gl.TEXTURE3);
             gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.roughness);
 
@@ -126,6 +129,9 @@ function drawAllObjects(){
         }else{
             // Put default white texture
             gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
+
+            gl.activeTexture(gl.TEXTURE2);
             gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
 
             gl.activeTexture(gl.TEXTURE3);

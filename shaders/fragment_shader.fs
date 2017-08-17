@@ -57,7 +57,7 @@ in highp vec2 vTexCoords;
 out vec4 color;
 
 vec3 getIntensityFromPosition(LightSource l, vec3 p);
-vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, int distriNbr);
+vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr);
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
 vec4 getLightColor(LightSource l, vec3 p);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
@@ -78,6 +78,8 @@ void main(void) {
     float roughness = texture(roughnessMap, vTexCoords).r;
     float ao = texture(aoMap, vTexCoords).r;
     float fresnel = texture(fresnelMap, vTexCoords).r;
+    // obtain normal from normal map in range [0,1]
+    //n = normalize(texture(normalMap, vTexCoords).rgb * 2.0 - 1.0);
 
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 
@@ -98,7 +100,7 @@ void main(void) {
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - fresnel;
 
-        specular = microFacetSpecular(incidentVector,excidentVector,n,kS,2);
+        specular = microFacetSpecular(incidentVector,excidentVector,n,kS,roughness, 2);
 
         vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],p);
 
@@ -110,7 +112,7 @@ void main(void) {
     vec3 lightDir = normalize(u_perPass.lights[0].position-p);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, n, lightDir);
 
-    vec3 ambient = vec3(0.03) * albedo * u_perScene.mesh.ao;
+    vec3 ambient = vec3(0.03) * albedo * ao;
     vec3 resultingColor = ambient + LO * shadowFactor;
 
     /*vec2 vFontSize = vec2(8.0, 15.0);
@@ -123,8 +125,6 @@ void main(void) {
     
     color = vec4(resultingColor,1.0);
 
-    //color = color * texture(albedoMap, vTexCoords);
-
 }
 
 // Light intensity attenuation
@@ -136,7 +136,7 @@ vec3 getIntensityFromPosition(LightSource l, vec3 p){
 }
 
 // Microfacet BRDF, distribution number stands for: 1 = Beckmann, 2 = GGX
-vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, int distriNbr){
+vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr){
     // HalfVec
     vec3 halfVec = (incidentVector + excidentVector) / length(incidentVector + excidentVector);
 
@@ -146,7 +146,7 @@ vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 f
     float normDotInc = max(0.0001f,dot(n,incidentVector));
     float normDotHalf = max(0.0001f,dot(n,halfVec));
     float normDotHalfSquared = normDotHalf*normDotHalf;
-    float roughnessSquared = u_perScene.mesh.roughness*u_perScene.mesh.roughness;
+    float roughnessSquared = roughness*roughness;
 
     float distribution;
     float geometry;
@@ -170,7 +170,7 @@ vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 f
         distribution = roughnessSquared / denominator;
 
         // Boubekeur
-        float r = u_perScene.mesh.roughness + 1.0;
+        float r = roughness + 1.0;
         float k = r * r / 8.0;
         float geoInc = normDotInc / (normDotInc * (1.0 - k) + k);
         float geoExc = normDotExc / (normDotExc * (1.0 - k) + k);

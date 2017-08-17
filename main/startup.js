@@ -115,7 +115,7 @@ function start() {
         "textures/floor/spaced-tiles1-albedo.png",
         "textures/floor/spaced-tiles1-normal.png",
         "textures/floor/spaced-tiles1-rough.png",
-        "textures/floor/spaced-tiles1-ao.png",);
+        "textures/floor/spaced-tiles1-ao.png");
     entities[entities.length-1].mat2 = material;
 
     // Create a plan underneath both objects

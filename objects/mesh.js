@@ -30,6 +30,57 @@ class Mesh {
         this.recomputeNormalsSimple ();
     }
 
+    loadPly(filename){
+        this.clear();
+
+        var sizeV, sizeT, tmp;
+        var items = filename.split('\n');
+        var idx = 0;
+
+        tmp = items[idx].split(' ');
+        // Get rid of everything before the number of vertices 
+        while(tmp[1] != "vertex") { 
+            idx++;
+            tmp = items[idx].split(' ');
+        }
+        sizeV = parseFloat(tmp[2]);
+
+        // Get rid of everything before the number of triangles 
+        while(tmp[1] != "face") { 
+            idx++;
+            tmp = items[idx].split(' ');
+        }
+        sizeT = parseFloat(tmp[2]);
+
+        console.log(sizeV, sizeT);
+
+        // Get rid of remaining header
+        while(tmp.length != 8) { 
+            idx++;
+            tmp = items[idx].split(' ');
+        }
+
+        //console.log(tmp);
+
+        for(let i=0; i<sizeV; i++){
+            this.m_positions.push($V([tmp[0],tmp[1],tmp[2]]));
+            this.m_normals.push($V([tmp[3],tmp[4],tmp[5]]));
+            this.m_UV.push($V([tmp[6],tmp[7]]));
+            idx++;
+            tmp = items[idx].split(' ');
+        }
+
+        for(let i=0; i<sizeT; i++){
+            this.m_triangles.push($V([tmp[1],tmp[2],tmp[3]]));
+            idx++;
+            tmp = items[idx].split(' ');
+        }
+
+        //this.centerAndScaleToUnit ();
+        //console.log(this.m_triangles[0], this.m_triangles[this.m_triangles.length-1]);
+
+    }
+
     clear () {
         this.m_positions = [];
         this.m_normals   = [];
@@ -106,7 +157,7 @@ class Mesh {
                 // Trust me I'm an engineer, it works.
                 var x = -scale + 2.0*scale*i/(res-1.0);
                 var z = -scale + 2.0*scale*j/(res-1.0);
-                this.m_positions[res*i+j] = $V([x,-1.25,z]);
+                this.m_positions[res*i+j] = $V([x,0,z]);
                 this.m_UV[res*i+j] = $V([(x+scale)/(2*scale), (z+scale)/(2*scale)]);
                 // We need (res-1)*(res-1)*2 triangles
                 if(i<res-1 && j<res-1){
@@ -208,6 +259,5 @@ class Mesh {
         pos.y = r * Math.sin (theta) * Math.sin (phi);
         pos.z = r * Math.cos (theta);
     }
-
 
 }

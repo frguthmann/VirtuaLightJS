@@ -97,39 +97,58 @@ function start() {
     entities[entities.length-1].pos = [1,-0.5,0];
     entities[entities.length-1].rot = [90,0];*/
     
-    // Load and transform the man object
+    // Load and transform the gun object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
-    mesh.loadOFF(manjs);
-    mesh.computeSphericalUV();
-    entities.push(new Entity(mesh, "Man", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [-1,-0.32,-0.3];
+    mesh.loadPly(gunjs);
+    entities.push(new Entity(mesh, "Gun", Matrix.I(4), new MeshMaterial(mesh)));
+    /*entities[entities.length-1].pos = [-1,-0.32,-0.3];
     entities[entities.length-1].rot = [180,0];
-    entities[entities.length-1].scale = 0.45;
-
-    // Create a plan underneath both objects
-    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.00,0.95);
-    mesh.makePlan(3.0, 50);
-    entities.push(new Entity(mesh, "Plan", Matrix.I(4), new MeshMaterial(mesh)));
-    
+    entities[entities.length-1].scale = 0.45;*/
     material = new MeshMaterial2( shaderProgram,
-        "textures/floor/spaced-tiles1-albedo.png",
-        "textures/floor/spaced-tiles1-normal.png",
-        "textures/floor/spaced-tiles1-rough.png",
-        "textures/floor/spaced-tiles1-ao.png");
+        "models/gun/gun_BC.png",
+        "models/gun/gun_N.png",
+        "models/gun/gun_R.png",
+        "textures/default.png",
+        "models/gun/gun_M.png");
     entities[entities.length-1].mat2 = material;
 
-    // Create a plan underneath both objects
+    // BACKGROUND PLAN
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
     mesh.makePlan2(1.0);
-    entities.push(new Entity(mesh, "Plan2", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [0,1.2,0];
-    
+    entities.push(new Entity(mesh, "Background", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [2,1,-3];
+    entities[entities.length-1].rot = [0,90];
     material = new MeshMaterial2( shaderProgram,
         "textures/rust/rustediron2_basecolor.png",
         "textures/rust/rustediron2_normal.png",
         "textures/rust/rustediron2_roughness.png",
         "textures/rust/rustediron2_ao.png",
         "textures/rust/rustediron2_metallic.png");
+    entities[entities.length-1].mat2 = material;
+
+    // Ball thingy
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
+    mesh.loadPly(balljs);
+    entities.push(new Entity(mesh, "Ball", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [1.25,0.355,0];
+    //entities[entities.length-1].scale = 0.1;
+    material = new MeshMaterial2( shaderProgram,
+        "models/ball/export3dcoat_lambert3SG_color.png",
+        "models/ball/export3dcoat_lambert3SG_nmap.png",
+        "models/ball/export3dcoat_lambert3SG_gloss.png",
+        "models/ball/materialball_ao.png",
+        "models/ball/export3dcoat_lambert3SG_metalness.png");
+    entities[entities.length-1].mat2 = material;
+
+    // Create a plan underneath both objects
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.00,0.95);
+    mesh.makePlan(3.0, 50);
+    entities.push(new Entity(mesh, "Floor", Matrix.I(4), new MeshMaterial(mesh)));
+    material = new MeshMaterial2( shaderProgram,
+        "textures/floor/spaced-tiles1-albedo.png",
+        "textures/floor/spaced-tiles1-normal.png",
+        "textures/floor/spaced-tiles1-rough.png",
+        "textures/floor/spaced-tiles1-ao.png");
     entities[entities.length-1].mat2 = material;
 
     // Fill the uniform buffers

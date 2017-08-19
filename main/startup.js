@@ -205,7 +205,7 @@ function loadObjects(){
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
     mesh.loadPly(maskjs);
     entities.push(new Entity(mesh, "Mask", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [-1.3,1,-1];
+    entities[entities.length-1].pos = [-1.3,1,0];
     entities[entities.length-1].scale = 1.3;
     material = new MeshMaterial2(
         "models/mask/mask_BC.jpg",
@@ -215,22 +215,7 @@ function loadObjects(){
         "models/mask/mask_M.jpg");
     entities[entities.length-1].mat2 = material;
 
-    // BACKGROUND PLAN
-    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
-    mesh.makePlan2(1.0);
-    entities.push(new Entity(mesh, "Background", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [1.5,1.5,-3];
-    entities[entities.length-1].rot = [0,90];
-    entities[entities.length-1].scale = 1.5;
-    material = new MeshMaterial2(
-        "textures/rust/rustediron2_basecolor.png",
-        "textures/rust/rustediron2_normal2.png",
-        "textures/rust/rustediron2_roughness.png",
-        "textures/rust/rustediron2_ao.png",
-        "textures/rust/rustediron2_metallic.png");
-    entities[entities.length-1].mat2 = material;
-
-    // Ball thingy
+     // Ball thingy
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
     mesh.loadPly(balljs);
     entities.push(new Entity(mesh, "Ball", Matrix.I(4), new MeshMaterial(mesh)));
@@ -269,6 +254,21 @@ function loadObjects(){
     /*material = new MeshMaterial2( shaderProgram,
         "textures/brick/brickwall.jpg",
         "textures/brick/brickwall_normal.jpg");*/
+    entities[entities.length-1].mat2 = material;
+
+    // BACKGROUND PLAN
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
+    mesh.makePlan2(1.0);
+    entities.push(new Entity(mesh, "Background", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [1.5,1.5,-3];
+    entities[entities.length-1].rot = [0,90];
+    entities[entities.length-1].scale = 1.5;
+    material = new MeshMaterial2(
+        "textures/rust/rustediron2_basecolor.png",
+        "textures/rust/rustediron2_normal2.png",
+        "textures/rust/rustediron2_roughness.png",
+        "textures/rust/rustediron2_ao.png",
+        "textures/rust/rustediron2_metallic.png");
     entities[entities.length-1].mat2 = material;
 }
 
@@ -497,8 +497,8 @@ function createMatrixTransforms(){
 
 function createLights(){
     // Actual lights of the scene
-    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,1]),100,1,1,1,lights.length));
-    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,0.5]),100,1,1,1,lights.length));
+    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,1]),100,1,1,1,lights.length));
+    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,0.5]),100,1,1,1,lights.length));
     
     // Filling dummy data for up to 5 lights because the UBO / shader expects 5 max
     for(var i=0; i<max_lights; i++){

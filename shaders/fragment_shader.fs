@@ -6,6 +6,7 @@ precision highp sampler2DShadow;
 
 #define M_PI 3.1415926535897932384626433832795
 #define MAX_LIGHTS 5
+#define MAX_DIST 0.35
 
 layout(std140, column_major) uniform;
 
@@ -19,20 +20,6 @@ struct LightSource
     float alin;
     float aquad;
 };
-
-struct Mesh{
-    vec3 albedo;
-    float pad;
-    float fresnel;
-    float roughness;
-    float ao;
-    float maxDistLightCube;
-};
-
-uniform PerScene
-{
-    Mesh mesh;
-} u_perScene;
 
 uniform PerPass
 {
@@ -56,12 +43,18 @@ in highp vec2 vTexCoords;
 
 out vec4 color;
 
+// Custom functions
 vec3 getIntensityFromPosition(LightSource l, vec3 p);
 vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr);
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
 vec4 getLightColor(LightSource l, vec3 p);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
 
+// Normal Mapping Without Precomputed Tangents by Christian Schüler
+mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv);
+vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord );
+
+// Number rendering code below by P_Malin
 float DigitBin( const int x );
 float PrintValue( const vec2 vStringCoords, const float fValue, const float fMaxDigits, const float fDecimalPlaces );
 
@@ -70,7 +63,8 @@ void main(void) {
     vec3 LO = vec3(0.);
     
     vec3 p = v_view.xyz;
-    vec3 n = normalize(vNormal);
+    vec3 vNorm = normalize(vNormal);
+    vec3 excidentVector = normalize(-p);
 
     int nbLights = int(u_perPass.nbLights);
 
@@ -78,22 +72,21 @@ void main(void) {
     float roughness = texture(roughnessMap, vTexCoords).r;
     float ao = texture(aoMap, vTexCoords).r;
     float fresnel = texture(fresnelMap, vTexCoords).r;
-    // obtain normal from normal map in range [0,1]
-    //n = normalize(texture(normalMap, vTexCoords).rgb * 2.0 - 1.0);
+    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );
 
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 
     f0 = mix(f0, albedo, fresnel);
 
+
     for (int i=0 ; i<nbLights; i++){
 
-        if(distance(p,u_perPass.lights[i].position) <= u_perScene.mesh.maxDistLightCube ){
+        if(distance(p,u_perPass.lights[i].position) <= MAX_DIST ){
             color = getLightColor(u_perPass.lights[i], p);
             return;
         }
 
         vec3 incidentVector = normalize(u_perPass.lights[i].position-p);
-        vec3 excidentVector = normalize(-p);
         float directionnalAttenuation = max(dot(n, incidentVector), 0.0);
 
         vec3 kS = fresnelSchlick(incidentVector, excidentVector, f0);
@@ -110,7 +103,7 @@ void main(void) {
 
     // Shadow computation
     vec3 lightDir = normalize(u_perPass.lights[0].position-p);
-    float shadowFactor = ShadowCalculation(vFragPosLightSpace, n, lightDir);
+    float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
 
     vec3 ambient = vec3(0.015) * albedo * ao;
     vec3 resultingColor = ambient + LO * shadowFactor;
@@ -195,7 +188,7 @@ vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0)
 }  
 
 vec4 getLightColor(LightSource l, vec3 p){
-    if(distance(p,l.position) >= u_perScene.mesh.maxDistLightCube*0.8 ){
+    if(distance(p,l.position) >= MAX_DIST*0.8 ){
         return vec4(0.0,0.0,0.0,1.0);
     }else{
         return vec4(l.color, 1.0);
@@ -235,7 +228,44 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
 
 
 //---------------------------------------------------------------
-// number rendering code below by P_Malin
+// Normal Mapping Without Precomputed Tangents by Christian Schüler
+//
+// http://www.thetenthplanet.de/archives/1180
+//---------------------------------------------------------------
+
+mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv)
+{
+    // get edge vectors of the pixel triangle
+    vec3 dp1 = dFdx( p );
+    vec3 dp2 = dFdy( p );
+    vec2 duv1 = dFdx( uv );
+    vec2 duv2 = dFdy( uv );
+ 
+    // solve the linear system
+    vec3 dp2perp = cross( dp2, N );
+    vec3 dp1perp = cross( N, dp1 );
+    vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+    vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+ 
+    // construct a scale-invariant frame 
+    float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
+    return mat3( T * invmax, B * invmax, N );
+}
+
+vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord )
+{
+    // assume N, the interpolated vertex normal and 
+    // V, the view vector (vertex to eye)
+    vec3 map = texture(normalMap, texcoord ).xyz;
+    map = map * 255./127. - 128./127.;
+    map.y = - map.y;
+    mat3 TBN = cotangent_frame(N, -V, texcoord);
+    return normalize(TBN * map);
+}
+
+
+//---------------------------------------------------------------
+// Number rendering code below by P_Malin
 //
 // https://www.shadertoy.com/view/4sBSWW
 //---------------------------------------------------------------

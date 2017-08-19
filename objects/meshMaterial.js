@@ -6,5 +6,6 @@ class MeshMaterial{
         this.roughness  = mesh.roughness;
         this.ao         = mesh.ao;
         this.maxDist    = Math.sqrt(cubeSize*cubeSize*3);
+        console.log(this.maxDist);
     }
 }

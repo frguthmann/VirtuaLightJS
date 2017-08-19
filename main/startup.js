@@ -120,7 +120,7 @@ function start() {
     entities[entities.length-1].scale = 1.5;
     material = new MeshMaterial2( shaderProgram,
         "textures/rust/rustediron2_basecolor.png",
-        "textures/rust/rustediron2_normal.png",
+        "textures/rust/rustediron2_normal2.png",
         "textures/rust/rustediron2_roughness.png",
         "textures/rust/rustediron2_ao.png",
         "textures/rust/rustediron2_metallic.png");
@@ -140,13 +140,26 @@ function start() {
         "models/ball/export3dcoat_lambert3SG_metalness.png");
     entities[entities.length-1].mat2 = material;
 
+    // Sword
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
+    mesh.loadPly(swordjs);
+    entities.push(new Entity(mesh, "Sword", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [0,1.8,-2];
+    material = new MeshMaterial2( shaderProgram,
+        "models/sword/sword_BC.jpg",
+        "models/sword/sword_N.png",
+        "models/sword/sword_R.jpg",
+        "textures/default.png",
+        "models/sword/sword_M.jpg");
+    entities[entities.length-1].mat2 = material;
+
     // Create a plan underneath both objects
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.00,0.95);
     mesh.makePlan(3.0, 50);
     entities.push(new Entity(mesh, "Floor", Matrix.I(4), new MeshMaterial(mesh)));
     material = new MeshMaterial2( shaderProgram,
         "textures/floor/spaced-tiles1-albedo.png",
-        "textures/floor/spaced-tiles1-normal3.png",
+        "textures/floor/spaced-tiles1-normal2.png",
         "textures/floor/spaced-tiles1-rough.png",
         "textures/floor/spaced-tiles1-ao.png");
     /*material = new MeshMaterial2( shaderProgram,

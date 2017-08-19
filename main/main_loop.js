@@ -104,46 +104,12 @@ function drawAllObjects(){
             entities[i].lastUpdateTime = Date.now();
         }
 
-        // Update material for mesh
-        updateMeshMaterialUniform(i);
-
         // Compute and update transforms UBOs according to mvMatrix
         updateMatrixUniformBuffer(i);
 
-        
-        if(entities[i].mat2){
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.albedo);
-
-            gl.activeTexture(gl.TEXTURE2);
-            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.normal);
-
-            gl.activeTexture(gl.TEXTURE3);
-            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.roughness);
-
-            gl.activeTexture(gl.TEXTURE4);
-            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.ao);
-
-            gl.activeTexture(gl.TEXTURE5);
-            gl.bindTexture(gl.TEXTURE_2D, entities[i].mat2.fresnel);
-
-        }else{
-            // Put default white texture
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
-
-            gl.activeTexture(gl.TEXTURE2);
-            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
-
-            gl.activeTexture(gl.TEXTURE3);
-            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
-
-            gl.activeTexture(gl.TEXTURE4);
-            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
-
-            gl.activeTexture(gl.TEXTURE5);
-            gl.bindTexture(gl.TEXTURE_2D, entities[1].mat2.fresnel);
-        }
+        // Set textures according to material or default if none found
+        var material = entities[i].mat2; 
+        setTextures(material);
 
         // Bind VAO
         gl.bindVertexArray(vaos[i]);
@@ -206,9 +172,38 @@ function updateLightsUniformBuffer(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function updateMeshMaterialUniform(i){
-    var meshMaterial = entities[i].material;
-    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerSceneBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(meshMaterial)));
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+function setTextures(material){
+    if(material){
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, material.albedo);
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, material.normal);
+
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, material.roughness);
+
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, material.ao);
+
+        gl.activeTexture(gl.TEXTURE5);
+        gl.bindTexture(gl.TEXTURE_2D, material.fresnel);
+
+    }else{
+        // Put default white texture
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+
+        gl.activeTexture(gl.TEXTURE5);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+    }
 }

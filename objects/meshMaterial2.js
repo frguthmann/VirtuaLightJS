@@ -1,21 +1,31 @@
 class MeshMaterial2{
 
-    constructor(shaderProg,
-                albedo      = "textures/default.png", 
-                normal      = "textures/default.png",
-                roughness   = "textures/default.png",
-                ao          = "textures/default.png",
-                fresnel     = "textures/default.png" 
-                ){
+    constructor(albedo, normal, roughness, ao, fresnel){
 
-        this.albedo     = this.loadTexture(shaderProg, albedo, "albedoMap", 1);
-        this.normal     = this.loadTexture(shaderProg, normal, "normalMap", 2);
-        this.roughness  = this.loadTexture(shaderProg, roughness, "roughnessMap", 3);
-        this.ao         = this.loadTexture(shaderProg, ao, "aoMap", 4);
-        this.fresnel    = this.loadTexture(shaderProg, fresnel, "fresnelMap", 5);
+        while(!MeshMaterial2.defaultTexture){
+            MeshMaterial2.defaultTexture = MeshMaterial2.loadTexture("textures/default.png");
+        }
+
+        // Default texture first because loading might take a while
+        this.albedo     = MeshMaterial2.defaultTexture;
+        this.normal     = MeshMaterial2.defaultTexture;
+        this.roughness  = MeshMaterial2.defaultTexture;
+        this.ao         = MeshMaterial2.defaultTexture;
+        this.fresnel    = MeshMaterial2.defaultTexture;
+
+        // Async loading of actual textures, webgl will start rendering before this is over
+        this.albedo     = MeshMaterial2.loadTexture(albedo);
+        this.normal     = MeshMaterial2.loadTexture(normal);
+        this.roughness  = MeshMaterial2.loadTexture(roughness);
+        this.ao         = MeshMaterial2.loadTexture(ao);
+        this.fresnel    = MeshMaterial2.loadTexture(fresnel);
     }
 
-    loadTexture(shaderProg, texturePath, textureMap, location){
+    static loadTexture(texturePath){
+
+        if(!texturePath){
+            return MeshMaterial2.defaultTexture;
+        }
         
         var tester = new Image();
         var texture = gl.createTexture();
@@ -33,7 +43,6 @@ class MeshMaterial2{
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, tester.width, tester.height, 0, gl.RGB, gl.UNSIGNED_BYTE, tester);
             gl.generateMipmap(gl.TEXTURE_2D);
             gl.bindTexture(gl.TEXTURE_2D, null);
-            gl.uniform1i(gl.getUniformLocation(shaderProg, textureMap), location);
         };
         
         tester.onerror=function() { // when .png failed

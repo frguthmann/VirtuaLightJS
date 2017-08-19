@@ -32,7 +32,6 @@ var nMatrix;
 // UBOS
 var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
-var uniformPerSceneBuffer;
 
 // VAOs
 var vaos = [];
@@ -96,76 +95,12 @@ function start() {
     console.log(Math.sqrt(cubeSize*cubeSize*3));
     entities[entities.length-1].pos = [1,-0.5,0];
     entities[entities.length-1].rot = [90,0];*/
+
+    // Set texture uniforms
+    setSamplerUniforms();
     
-    // Load and transform the gun object
-    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
-    mesh.loadPly(maskjs);
-    entities.push(new Entity(mesh, "Mask", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [-1.3,1,-1];
-    entities[entities.length-1].scale = 1.3;
-    material = new MeshMaterial2( shaderProgram,
-        "models/mask/mask_BC.jpg",
-        "models/mask/mask_N.jpg",
-        "models/mask/mask_R.jpg",
-        "models/mask/mask_AO.jpg",
-        "models/mask/mask_M.jpg");
-    entities[entities.length-1].mat2 = material;
-
-    // BACKGROUND PLAN
-    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
-    mesh.makePlan2(1.0);
-    entities.push(new Entity(mesh, "Background", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [1.5,1.5,-3];
-    entities[entities.length-1].rot = [0,90];
-    entities[entities.length-1].scale = 1.5;
-    material = new MeshMaterial2( shaderProgram,
-        "textures/rust/rustediron2_basecolor.png",
-        "textures/rust/rustediron2_normal2.png",
-        "textures/rust/rustediron2_roughness.png",
-        "textures/rust/rustediron2_ao.png",
-        "textures/rust/rustediron2_metallic.png");
-    entities[entities.length-1].mat2 = material;
-
-    // Ball thingy
-    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
-    mesh.loadPly(balljs);
-    entities.push(new Entity(mesh, "Ball", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [1.25,0.355,0];
-    //entities[entities.length-1].scale = 0.1;
-    material = new MeshMaterial2( shaderProgram,
-        "models/ball/export3dcoat_lambert3SG_color.png",
-        "models/ball/export3dcoat_lambert3SG_nmap.png",
-        "models/ball/export3dcoat_lambert3SG_gloss.png",
-        "models/ball/materialball_ao.png",
-        "models/ball/export3dcoat_lambert3SG_metalness.png");
-    entities[entities.length-1].mat2 = material;
-
-    // Sword
-    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
-    mesh.loadPly(swordjs);
-    entities.push(new Entity(mesh, "Sword", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [0,1.8,-2];
-    material = new MeshMaterial2( shaderProgram,
-        "models/sword/sword_BC.jpg",
-        "models/sword/sword_N.png",
-        "models/sword/sword_R.jpg",
-        "textures/default.png",
-        "models/sword/sword_M.jpg");
-    entities[entities.length-1].mat2 = material;
-
-    // Create a plan underneath both objects
-    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.00,0.95);
-    mesh.makePlan(3.0, 50);
-    entities.push(new Entity(mesh, "Floor", Matrix.I(4), new MeshMaterial(mesh)));
-    material = new MeshMaterial2( shaderProgram,
-        "textures/floor/spaced-tiles1-albedo.png",
-        "textures/floor/spaced-tiles1-normal2.png",
-        "textures/floor/spaced-tiles1-rough.png",
-        "textures/floor/spaced-tiles1-ao.png");
-    /*material = new MeshMaterial2( shaderProgram,
-        "textures/brick/brickwall.jpg",
-        "textures/brick/brickwall_normal.jpg");*/
-    entities[entities.length-1].mat2 = material;
+    // Contains every object declaration with material
+    loadObjects()
 
     // Fill the uniform buffers
     initUBOs();
@@ -253,6 +188,113 @@ function createShader(gl, source, type) {
     return shader;
 }
 
+function setSamplerUniforms(){
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, 'shadowMap'), 0);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, "albedoMap"), 1);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, "normalMap"), 2);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, "roughnessMap"), 3);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, "aoMap"), 4);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, "fresnelMap"), 5);
+}
+
+function loadObjects(){
+
+    console.log("MM2 " + MeshMaterial2.defaultTexture);
+
+    // Load and transform the gun object
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
+    mesh.loadPly(maskjs);
+    entities.push(new Entity(mesh, "Mask", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [-1.3,1,-1];
+    entities[entities.length-1].scale = 1.3;
+    material = new MeshMaterial2(
+        "models/mask/mask_BC.jpg",
+        "models/mask/mask_N.jpg",
+        "models/mask/mask_R.jpg",
+        "models/mask/mask_AO.jpg",
+        "models/mask/mask_M.jpg");
+    entities[entities.length-1].mat2 = material;
+
+    // BACKGROUND PLAN
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
+    mesh.makePlan2(1.0);
+    entities.push(new Entity(mesh, "Background", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [1.5,1.5,-3];
+    entities[entities.length-1].rot = [0,90];
+    entities[entities.length-1].scale = 1.5;
+    material = new MeshMaterial2(
+        "textures/rust/rustediron2_basecolor.png",
+        "textures/rust/rustediron2_normal2.png",
+        "textures/rust/rustediron2_roughness.png",
+        "textures/rust/rustediron2_ao.png",
+        "textures/rust/rustediron2_metallic.png");
+    entities[entities.length-1].mat2 = material;
+
+    // Ball thingy
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
+    mesh.loadPly(balljs);
+    entities.push(new Entity(mesh, "Ball", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [1.25,0.355,0];
+    //entities[entities.length-1].scale = 0.1;
+    material = new MeshMaterial2(
+        "models/ball/export3dcoat_lambert3SG_color.png",
+        "models/ball/export3dcoat_lambert3SG_nmap.png",
+        "models/ball/export3dcoat_lambert3SG_gloss.png",
+        "models/ball/materialball_ao.png",
+        "models/ball/export3dcoat_lambert3SG_metalness.png");
+    entities[entities.length-1].mat2 = material;
+
+    // Sword
+    mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
+    mesh.loadPly(swordjs);
+    entities.push(new Entity(mesh, "Sword", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [0,1.8,-2];
+    material = new MeshMaterial2(
+        "models/sword/sword_BC.jpg",
+        "models/sword/sword_N.png",
+        "models/sword/sword_R.jpg",
+        "textures/default.png",
+        "models/sword/sword_M.jpg");
+    entities[entities.length-1].mat2 = material;
+
+    // Create a plan underneath both objects
+    mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.00,0.95);
+    mesh.makePlan(3.0, 50);
+    entities.push(new Entity(mesh, "Floor", Matrix.I(4), new MeshMaterial(mesh)));
+    material = new MeshMaterial2(
+        "textures/floor/spaced-tiles1-albedo.png",
+        "textures/floor/spaced-tiles1-normal2.png",
+        "textures/floor/spaced-tiles1-rough.png",
+        "textures/floor/spaced-tiles1-ao.png");
+    /*material = new MeshMaterial2( shaderProgram,
+        "textures/brick/brickwall.jpg",
+        "textures/brick/brickwall_normal.jpg");*/
+    entities[entities.length-1].mat2 = material;
+}
+
+function initUBOs(){
+
+    // Find and link uniform blocks
+    var uniformPerDrawLocation = gl.getUniformBlockIndex(shaderProgram, 'PerDraw');
+    var uniformPerPassLocation = gl.getUniformBlockIndex(shaderProgram, 'PerPass'); 
+    gl.uniformBlockBinding(shaderProgram, uniformPerDrawLocation, 0);
+    gl.uniformBlockBinding(shaderProgram, uniformPerPassLocation, 1);
+
+    // Create transform UBO and bind it to data
+    createMatrixTransforms();
+    uniformPerDrawBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
+    gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
+
+    // Create and bind lights to light_UBO
+    var lightData = createLights();
+    uniformPerPassBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
+    gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
+    
+    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+}
+
 function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer, colors) {
 
     // Vertex Buffer
@@ -284,37 +326,6 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     var col = new Float32Array(colors);
     gl.bufferData(gl.ARRAY_BUFFER, col, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
-}
-
-function initUBOs(){
-
-    // Find and link uniform blocks
-    var uniformPerDrawLocation = gl.getUniformBlockIndex(shaderProgram, 'PerDraw');
-    var uniformPerPassLocation = gl.getUniformBlockIndex(shaderProgram, 'PerPass');
-    var uniformPerSceneLocation = gl.getUniformBlockIndex(shaderProgram, 'PerScene');  
-    gl.uniformBlockBinding(shaderProgram, uniformPerDrawLocation, 0);
-    gl.uniformBlockBinding(shaderProgram, uniformPerPassLocation, 1);
-    gl.uniformBlockBinding(shaderProgram, uniformPerSceneLocation, 2);
-
-    // Create transform UBO and bind it to data
-    createMatrixTransforms();
-    uniformPerDrawBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
-    gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
-
-    // Create and bind lights to light_UBO
-    var lightData = createLights();
-    uniformPerPassBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
-    gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
-
-    // Create material UBO and bind it to data
-    var meshMaterial = new Float32Array(flattenObject(new MeshMaterial()));
-    uniformPerSceneBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerSceneBuffer);
-    gl.bufferData(gl.UNIFORM_BUFFER, meshMaterial, gl.DYNAMIC_DRAW);
-    
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
 function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer){
@@ -355,7 +366,6 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     // Bind UBOs
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
     gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, 2, uniformPerSceneBuffer);
 
     gl.bindVertexArray(null);
     vaos.push(vertexArray);
@@ -443,11 +453,6 @@ function initShadowMapFrameBuffer(){
     if (!gl.getProgramParameter(depthProgram, gl.LINK_STATUS)) {
         console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(depthProgram));
     }
-
-    // Get shadow map uniform
-    shadowMapUniform = gl.getUniformLocation(shaderProgram, 'shadowMap');
-    // Update it once and for all
-    gl.uniform1i(shadowMapUniform, 0);
 
     // Generate depth texture
     depthMap = gl.createTexture();

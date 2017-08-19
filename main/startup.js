@@ -99,25 +99,25 @@ function start() {
     
     // Load and transform the gun object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);
-    mesh.loadPly(gunjs);
-    entities.push(new Entity(mesh, "Gun", Matrix.I(4), new MeshMaterial(mesh)));
-    /*entities[entities.length-1].pos = [-1,-0.32,-0.3];
-    entities[entities.length-1].rot = [180,0];
-    entities[entities.length-1].scale = 0.45;*/
+    mesh.loadPly(maskjs);
+    entities.push(new Entity(mesh, "Mask", Matrix.I(4), new MeshMaterial(mesh)));
+    entities[entities.length-1].pos = [-1.3,1,-1];
+    entities[entities.length-1].scale = 1.3;
     material = new MeshMaterial2( shaderProgram,
-        "models/gun/gun_BC.png",
-        "models/gun/gun_N.png",
-        "models/gun/gun_R.png",
-        "textures/default.png",
-        "models/gun/gun_M.png");
+        "models/mask/mask_BC.jpg",
+        "models/mask/mask_N.jpg",
+        "models/mask/mask_R.jpg",
+        "models/mask/mask_AO.jpg",
+        "models/mask/mask_M.jpg");
     entities[entities.length-1].mat2 = material;
 
     // BACKGROUND PLAN
     mesh = new Mesh($V([1.0,1.0,1.0,1.0]), 0.94,0.2);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Background", Matrix.I(4), new MeshMaterial(mesh)));
-    entities[entities.length-1].pos = [2,1,-3];
+    entities[entities.length-1].pos = [1.5,1.5,-3];
     entities[entities.length-1].rot = [0,90];
+    entities[entities.length-1].scale = 1.5;
     material = new MeshMaterial2( shaderProgram,
         "textures/rust/rustediron2_basecolor.png",
         "textures/rust/rustediron2_normal.png",
@@ -146,9 +146,12 @@ function start() {
     entities.push(new Entity(mesh, "Floor", Matrix.I(4), new MeshMaterial(mesh)));
     material = new MeshMaterial2( shaderProgram,
         "textures/floor/spaced-tiles1-albedo.png",
-        "textures/floor/spaced-tiles1-normal.png",
+        "textures/floor/spaced-tiles1-normal3.png",
         "textures/floor/spaced-tiles1-rough.png",
         "textures/floor/spaced-tiles1-ao.png");
+    /*material = new MeshMaterial2( shaderProgram,
+        "textures/brick/brickwall.jpg",
+        "textures/brick/brickwall_normal.jpg");*/
     entities[entities.length-1].mat2 = material;
 
     // Fill the uniform buffers

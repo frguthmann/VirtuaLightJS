@@ -52,7 +52,7 @@ class Mesh {
         }
         sizeT = parseFloat(tmp[2]);
 
-        console.log(sizeV, sizeT);
+        //console.log(sizeV, sizeT);
 
         // Get rid of remaining header
         while(tmp.length != 8) { 

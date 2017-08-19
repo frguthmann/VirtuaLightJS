@@ -8,3 +8,11 @@
     border-style: solid;
     border-width: 1px;
 }
+
+#credits { 
+    text-align: center;
+}
+
+h3, p{
+    display:inline;
+}

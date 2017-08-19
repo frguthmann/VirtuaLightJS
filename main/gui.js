@@ -1,6 +1,10 @@
 // FPS counter
 var stats;
-var guiObj = { sceneMode : "Normal", nbVertices : 0, nbTriangles : 0, shadowRes : "0 x 0" };
+var guiObj = {
+    sceneMode : "Normal",
+    nbVertices : 0,
+    nbTriangles : 0,
+    shadowRes : "0 x 0" };
 
 function initFPSCounter(){
     stats = new Stats();
@@ -119,6 +123,8 @@ function initGui() {
             scene.mode = gl.LINES;
         }
     }).listen();
+
+    gui.add
 
 };
 

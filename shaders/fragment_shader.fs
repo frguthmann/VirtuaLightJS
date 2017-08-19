@@ -112,7 +112,7 @@ void main(void) {
     vec3 lightDir = normalize(u_perPass.lights[0].position-p);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, n, lightDir);
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 ambient = vec3(0.015) * albedo * ao;
     vec3 resultingColor = ambient + LO * shadowFactor;
 
     /*vec2 vFontSize = vec2(8.0, 15.0);
@@ -219,7 +219,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
         for(float y = -1.0; y <= 1.0; y+=0.5)
         {
             vec3 UVC = vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z + bias);
-            shadow += texture(shadowMap, UVC) == 0.0 ? 0.3 : 1.0;        
+            shadow += texture(shadowMap, UVC) == 0.0 ? 0.0 : 1.0;        
         }    
     }
 

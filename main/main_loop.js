@@ -58,8 +58,9 @@ function render(){
 
     /*gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, rustTexture);*/
-
+    gl.disable(gl.CULL_FACE);
     drawAllObjects();
+    gl.enable(gl.CULL_FACE);
 }
 
 function debugDrawOnQuad(texture){

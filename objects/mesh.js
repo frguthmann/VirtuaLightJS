@@ -1,10 +1,7 @@
 class Mesh {
     // 
-    constructor(albedo = $V([1.0,0.0,0.0,1.0]), fresnel=0.91, roughness = 0.1, ao = 1.0) {
-        this.albedo = albedo;
-        this.fresnel = fresnel;
-        this.roughness = roughness;
-        this.ao = ao;
+    constructor(material = new MeshMaterial()) {
+        this.material = material;
         this.clear();
     }
 

@@ -108,7 +108,7 @@ function drawAllObjects(){
         updateMatrixUniformBuffer(i);
 
         // Set textures according to material or default if none found
-        var material = entities[i].mat2; 
+        var material = entities[i].mesh.material; 
         setTextures(material);
 
         // Bind VAO

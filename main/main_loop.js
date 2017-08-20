@@ -192,18 +192,18 @@ function setTextures(material){
     }else{
         // Put default white texture
         gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
 
         gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
 
         gl.activeTexture(gl.TEXTURE3);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
 
         gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
 
         gl.activeTexture(gl.TEXTURE5);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial2.defaultTexture);
+        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
     }
 }

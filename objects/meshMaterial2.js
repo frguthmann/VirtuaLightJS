@@ -10,11 +10,11 @@ class MeshMaterial2{
         this.fresnel    = MeshMaterial2.defaultTexture;
 
         // Async loading of actual textures, webgl will start rendering before this is over
-        /*this.albedo     = MeshMaterial2.loadTexture(albedo);
-        this.normal     = MeshMaterial2.loadTexture(normal);
-        this.roughness  = MeshMaterial2.loadTexture(roughness);
-        this.ao         = MeshMaterial2.loadTexture(ao);
-        this.fresnel    = MeshMaterial2.loadTexture(fresnel);*/
+        this.assignTexture("albedo", albedo);
+        this.assignTexture("normal", normal);
+        this.assignTexture("roughness", roughness);
+        this.assignTexture("ao", ao);
+        this.assignTexture("fresnel", fresnel);
     }
 
     static loadTexture(texturePath, callback){
@@ -41,7 +41,7 @@ class MeshMaterial2{
             console.log("Loaded " + texturePath + " successfully");
 
             if(callback){
-                callback();
+                callback(texture);
             }
         };
         
@@ -56,6 +56,17 @@ class MeshMaterial2{
 
     static loadDefaultTexture(callback){    
         const texturePath = "textures/default.png"
+        /*  Assign texture now, even if it's not loaded yet.
+            The callback will notify main when the texture is ready*/
         MeshMaterial2.defaultTexture = MeshMaterial2.loadTexture(texturePath, callback);
+    }
+
+    assignTexture(attribute, texturePath){    
+        let meshMat = this;
+        /*  Assign only when the texture is loaded. 
+            The default texture is set as place holder in the meantime.*/
+        MeshMaterial2.loadTexture(texturePath, function(texture){
+            meshMat[attribute] = texture;
+        });
     }
 }

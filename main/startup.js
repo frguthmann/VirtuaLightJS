@@ -87,14 +87,6 @@ function start() {
 
     // Initiate shaders
     initShaders();
-    
-    // Load and transform the rhino object
-    /*var mesh = new Mesh($V([0.8,0.8,0.8,1.0]),0.94, 0.10);
-    mesh.loadOFF(rhinojs);
-    entities.push(new Entity(mesh, "Rhino", Matrix.I(4), new MeshMaterial(mesh)));
-    console.log(Math.sqrt(cubeSize*cubeSize*3));
-    entities[entities.length-1].pos = [1,-0.5,0];
-    entities[entities.length-1].rot = [90,0];*/
 
     // Set texture uniforms
     setSamplerUniforms();
@@ -107,10 +99,10 @@ function start() {
 
     // Create VAOs and data buffers
     for(var i=0; i<entities.length; i++){
-        var verticesBuffer = gl.createBuffer();
-        var verticesIndexBuffer = gl.createBuffer();
-        var verticesNormalBuffer = gl.createBuffer();
-        var verticesColorBuffer = gl.createBuffer();
+        var verticesBuffer          = gl.createBuffer();
+        var verticesIndexBuffer     = gl.createBuffer();
+        var verticesNormalBuffer    = gl.createBuffer();
+        var verticesColorBuffer     = gl.createBuffer();
         var verticesTexCoordsBuffer = gl.createBuffer();
     
         // Create the colors
@@ -212,6 +204,7 @@ function drawSceneIfReady(){
 
     // This function should be called twice before we can draw the scene (default texture + main thread)
     if(drawSceneIfReady.counter == 2){
+        console.log("drawing");
         drawScene();
     }
 }

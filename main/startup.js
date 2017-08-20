@@ -43,8 +43,6 @@ var transforms;
 var meshes = [];
 // Contains every renderable object, including lights debug models 
 var entities = [];
-// Not in the mesh attribute but still necessary
-var colors = [];
 // Contains the lights of the scene
 var lights = [];
 // Same as lights but with position * modelViewMatrix
@@ -102,15 +100,12 @@ function start() {
         var verticesBuffer          = gl.createBuffer();
         var verticesIndexBuffer     = gl.createBuffer();
         var verticesNormalBuffer    = gl.createBuffer();
-        var verticesColorBuffer     = gl.createBuffer();
         var verticesTexCoordsBuffer = gl.createBuffer();
     
-        // Create the colors
-        var colors = generateColors(entities[i].mesh);
         // Initiate buffers
-        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer, colors);
+        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
         // Init VAO
-        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer);
+        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
         // Init DepthVAO
         initDepthVAO(verticesBuffer, verticesIndexBuffer);
     }
@@ -312,7 +307,7 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer, colors) {
+function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer) {
 
     // Vertex Buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -337,21 +332,14 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     var texCoords = new Float32Array(flattenObject(mesh.m_UV));
     gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    // Color Buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
-    var col = new Float32Array(colors);
-    gl.bufferData(gl.ARRAY_BUFFER, col, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
 }
 
-function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesColorBuffer, verticesTexCoordsBuffer){
+function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer){
 
     // Create buffer location attributes
     var vertexPositionAttribute = 0;
     var vertexNormalAttribute   = 1;
-    var vertexColorAttribute    = 2;
-    var texCoordsAttribute      = 3;
+    var texCoordsAttribute      = 2;
 
     // Fill VAO with the right calls
     var vertexArray = gl.createVertexArray();
@@ -366,11 +354,6 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
     gl.enableVertexAttribArray(vertexNormalAttribute);   
     gl.vertexAttribPointer(vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
-
-    // Send colors
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesColorBuffer);
-    gl.enableVertexAttribArray(vertexColorAttribute); 
-    gl.vertexAttribPointer(vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
 
     // Send texture coordinates
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
@@ -569,28 +552,8 @@ function enableLightDisplay(lightPos, i){
     ];
     mesh.m_normals = mesh.m_normals.concat(norm);
 
-    var col = [
-         1.0,  1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,  1.0, 
-         1.0,  1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,  1.0 
-    ];
-    colors = colors.concat(col);
-
     // DEBUG
     mesh.computeSphericalUV();
-}
-
-function generateColors(mesh){
-    var col = [];
-    for(var i=0; i<mesh.m_positions.length; i++){
-        col.push(mesh.albedo);
-    }
-    return flattenObject(col);
 }
 
 function boxFromLight(lightPos){

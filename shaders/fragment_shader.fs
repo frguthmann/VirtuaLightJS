@@ -37,7 +37,6 @@ uniform sampler2D fresnelMap;
 
 in highp vec4 v_view ;
 in highp vec3 vNormal;
-in highp vec4 vColor;
 in highp vec4 vFragPosLightSpace;
 in highp vec2 vTexCoords;
 

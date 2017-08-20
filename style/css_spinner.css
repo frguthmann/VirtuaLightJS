@@ -2,8 +2,8 @@
 
 .sk-folding-cube {
   margin: 20px auto;
-  width: 100px;
-  height: 100px;
+  width: 60px;
+  height: 60px;
   position: relative;
   -webkit-transform: rotateZ(45deg);
           transform: rotateZ(45deg);

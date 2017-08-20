@@ -200,6 +200,8 @@ function drawSceneIfReady(){
     // This function should be called twice before we can draw the scene (default texture + main thread)
     if(drawSceneIfReady.counter == 2){
         console.log("drawing");
+        var spinner = document.getElementById("spinner");
+        spinner.parentNode.removeChild(spinner);
         drawScene();
     }
 }

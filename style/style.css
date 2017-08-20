@@ -20,3 +20,14 @@ h3, p{
 .github-fork-ribbon.right-bottom:before {
     background-color: #11151f;
 }
+
+#spinner {
+    position: fixed;
+    top:0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 100px;
+    height: 100px;
+ }

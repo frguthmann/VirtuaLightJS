@@ -135,9 +135,10 @@ function start() {
     // Load depth shaders, generate depth texture and framebuffer to compute shadow maps
     initShadowMapFrameBuffer();
 
-    // Draw the scene
-    drawScene();
+    console.log("Main initialization done");
 
+    // The scene will be drawn only if the default texture is loaded
+    drawSceneIfReady();
 }
 
 function initShaders() {
@@ -197,9 +198,32 @@ function setSamplerUniforms(){
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "fresnelMap"), 5);
 }
 
+// Wait for both default texture and main initialization code to finish before drawing
+function drawSceneIfReady(){
+
+    // Check to see if the counter has been initialized
+    if (!drawSceneIfReady.counter) {
+        // It has not... perform the initialization
+        drawSceneIfReady.counter = 0;
+    }
+    
+    // Add one use of it
+    drawSceneIfReady.counter++;
+
+    // This function should be called twice before we can draw the scene (default texture + main thread)
+    if(drawSceneIfReady.counter == 2){
+        drawScene();
+    }
+}
+
 function loadObjects(){
 
-    console.log("MM2 " + MeshMaterial2.defaultTexture);
+    // Start drawing the scene one the texture is loaded
+    MeshMaterial2.loadDefaultTexture(function(){
+        console.log("Default texture loaded");
+        // The scene will be drawn only if the main initialization is done
+        drawSceneIfReady();
+    });
 
     // Load and transform the gun object
     mesh = new Mesh($V([1.0,0.0,0.0,1.0]),0.25,0.2);

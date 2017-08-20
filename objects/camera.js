@@ -1,15 +1,15 @@
 class Camera {
-    constructor(fovAngle = 45.0, nearPlane = 0.01, farPlane = 50.0, camTheta = 3*Math.PI/8.0, camPhi = 0.0,
+    constructor(fovAngle = 53.0, nearPlane = 0.01, farPlane = 50.0, camTheta = 3*Math.PI/8.0, camPhi = 0.0,
                 camDist2Target = 6.0, camTargetX = 0.0, camTargetY = 0.0, camTargetZ = 0.0) {
-        this.fovAngle = 45.0;
-        this.nearPlane = 0.01;
-        this.farPlane = 50.0;
-        this.camTheta = 3*Math.PI/8.0;
-        this.camPhi = 0.0;
-        this.camDist2Target = 6.0;
-        this.camTargetX = 0.0;
-        this.camTargetY = 0.0;
-        this.camTargetZ = 0.0;
+        this.fovAngle = fovAngle;
+        this.nearPlane = nearPlane;
+        this.farPlane = farPlane;
+        this.camTheta = camTheta;
+        this.camPhi = camPhi;
+        this.camDist2Target = camDist2Target;
+        this.camTargetX = camTargetX;
+        this.camTargetY = camTargetY;
+        this.camTargetZ = camTargetZ;
         this.shouldSetup = false;
         this.setup();
     }
@@ -56,7 +56,17 @@ class Camera {
     }
 
     zoom(step){
-        this.camDist2Target = Math.max(1,this.camDist2Target+step);
+                
+        // Zoom in or out
+        var posStep = step > 0 ? 1.1 : 0.90;
+        this.camDist2Target = Math.max(Math.min(40,this.camDist2Target*posStep),0.001);
+        
+        // Update FOV accordingly for style
+        var fovStp = Math.pow(60.0/30.0, 1.0 / (Math.log(40.0/0.001) / Math.log(1.1)) );
+        var fovStep = step > 0 ? fovStp : 2.0-fovStp;
+        this.fovAngle = Math.max(Math.min(60,this.fovAngle*fovStep),30);
+        pMatrix = makePerspective(this.fovAngle, canvas.width/canvas.height, this.nearPlane, this.farPlane);
+
         this.shouldSetup = true;
     }
 

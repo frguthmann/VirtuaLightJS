@@ -123,7 +123,6 @@ function start() {
     initShadowMapFrameBuffer();
 
     console.log("Main initialization done");
-    console.log(gl.UNIFORM_BLOCK_DATA_SIZE);
 
     // The scene will be drawn only if the default texture is loaded
     drawSceneIfReady();
@@ -293,13 +292,17 @@ function initUBOs(){
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
-    //console.log(uniformPerDrawBuffer);
+    console.log("Block data size: " + gl.getActiveUniformBlockParameter(shaderProgram, 0, gl.UNIFORM_BLOCK_DATA_SIZE));
+    console.log("Buffer size: " + transforms.length*4);
 
     // Create and bind lights to light_UBO
-    var lightData = createLights();
+    var lightData = createLights(shaderProgram, 1);
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
+    console.log("Block data size: " + gl.getActiveUniformBlockParameter(shaderProgram, 1, gl.UNIFORM_BLOCK_DATA_SIZE));
+    console.log("Buffer size: " + lightData.length*4);
+
     
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
@@ -492,7 +495,7 @@ function createMatrixTransforms(){
     transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(Matrix.I(4).flatten()));
 }
 
-function createLights(){
+function createLights(prog, uboIdx){
     // Actual lights of the scene
     lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,1]),100,1,1,1,lights.length));
     lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,0.5]),100,1,1,1,lights.length));
@@ -512,10 +515,23 @@ function createLights(){
         }
     }
     
-    var floatArray = new Float32Array(flattenObject(dataLights).concat(lights.length));
     // Forget about the dummy data, we just had to send it once to the graphic card
     dataLights = dataLights.slice(0,lights.length);
-    return floatArray;
+
+    // Get all the data into an array
+    var unpaddedData = flattenObject(dataLights).concat(lights.length);
+    // Figure out how much we need to pad
+    var paddingLeft = (gl.getActiveUniformBlockParameter(prog, uboIdx, gl.UNIFORM_BLOCK_DATA_SIZE) - unpaddedData.length * 4) / 4.0;
+    // Padd it with -1
+    for(var i=0; i<paddingLeft; i++){
+        unpaddedData.push(-1.0);
+    }
+
+    return new Float32Array(unpaddedData);
+}
+
+function padTo256(){
+
 }
 
 function enableLightDisplay(lightPos, i){

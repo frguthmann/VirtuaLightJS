@@ -292,17 +292,12 @@ function initUBOs(){
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
-    console.log("Block data size: " + gl.getActiveUniformBlockParameter(shaderProgram, 0, gl.UNIFORM_BLOCK_DATA_SIZE));
-    console.log("Buffer size: " + transforms.length*4);
 
     // Create and bind lights to light_UBO
     var lightData = createLights(shaderProgram, 1);
     uniformPerPassBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
-    console.log("Block data size: " + gl.getActiveUniformBlockParameter(shaderProgram, 1, gl.UNIFORM_BLOCK_DATA_SIZE));
-    console.log("Buffer size: " + lightData.length*4);
-
     
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }

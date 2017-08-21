@@ -9,6 +9,10 @@ class MeshMaterial{
         this.ao         = MeshMaterial.defaultTexture;
         this.fresnel    = MeshMaterial.defaultTexture;
 
+        if(!MeshMaterial.nbTextureToLoad){
+            MeshMaterial.nbTextureToLoad = 0;
+        }
+
         // Async loading of actual textures, webgl will start rendering before this is over
         this.assignTexture("albedo", albedo);
         this.assignTexture("normal", normal);
@@ -22,6 +26,8 @@ class MeshMaterial{
         if(!texturePath){
             return MeshMaterial.defaultTexture;
         }
+
+        MeshMaterial.nbTextureToLoad++;
         
         var tester = new Image();
         var texture = gl.createTexture();
@@ -66,7 +72,15 @@ class MeshMaterial{
         /*  Assign only when the texture is loaded. 
             The default texture is set as place holder in the meantime.*/
         MeshMaterial.loadTexture(texturePath, function(texture){
-            meshMat[attribute] = texture;
-        });
+        meshMat[attribute] = texture;
+
+        // Keep track of how much there is left to load
+        if(!MeshMaterial.nbTextureLoaded){
+            MeshMaterial.nbTextureLoaded = 0;
+        }
+        MeshMaterial.nbTextureLoaded++;
+
+        updateSpinner();
+    });
     }
 }

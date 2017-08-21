@@ -207,3 +207,12 @@ function setTextures(material){
         gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
     }
 }
+
+function updateSpinner(){
+    var loadPercent = document.getElementById("loadPercent");
+    loadPercent.textContent = Math.floor((MeshMaterial.nbTextureLoaded / MeshMaterial.nbTextureToLoad) * 100) + "%";
+    if(MeshMaterial.nbTextureLoaded == MeshMaterial.nbTextureToLoad){
+        var spinner = document.getElementById("spinner");
+        spinner.parentNode.removeChild(spinner);
+    }
+}

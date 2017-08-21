@@ -124,8 +124,6 @@ function initGui() {
         }
     }).listen();
 
-    gui.add
-
 };
 
 function updateObjectMVMatrix(idx){

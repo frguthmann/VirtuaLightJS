@@ -23,12 +23,19 @@ h3, p{
 
 #spinner {
     position: fixed;
-    top:0;
     bottom: 0;
     left: 0;
     right: 0;
     margin: auto;
-    width: 100px;
-    height: 100px;
     text-align: center;
- }
+}
+
+#loadPercent{
+    position: fixed;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    text-align: center;
+    color: white;
+}

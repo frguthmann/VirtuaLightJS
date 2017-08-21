@@ -229,11 +229,11 @@ function loadObjects(){
 
      // Ball thingy
     material = new MeshMaterial(
-        "models/ball/export3dcoat_lambert3SG_color.png",
-        "models/ball/export3dcoat_lambert3SG_nmap.png",
+        "models/ball/ball_BC.png",
+        "models/ball/ball_N.png",
         "models/ball/ball_R.png",
-        "models/ball/materialball_ao.png",
-        "models/ball/export3dcoat_lambert3SG_metalness.png");
+        "models/ball/ball_AO.png",
+        "models/ball/ball_M.png");
     mesh = new Mesh(material);
     mesh.loadPly(balljs);
     entities.push(new Entity(mesh, "Ball", Matrix.I(4)));
@@ -254,24 +254,24 @@ function loadObjects(){
 
     // Create a plan underneath both objects
     material = new MeshMaterial(
-        "textures/floor/spaced-tiles1-albedo.png",
-        "textures/floor/spaced-tiles1-normal2.png",
-        "textures/floor/spaced-tiles1-rough.png",
-        "textures/floor/spaced-tiles1-ao.png");
+        "textures/floor/tiles_BC.png",
+        "textures/floor/tiles_N.png",
+        "textures/floor/tiles_R.png",
+        "textures/floor/tiles_AO.png");
     /*material = new MeshMaterial( shaderProgram,
-        "textures/brick/brickwall.jpg",
-        "textures/brick/brickwall_normal.jpg");*/
+        "textures/brick/brick_BC.jpg",
+        "textures/brick/brick_N.jpg");*/
     mesh = new Mesh(material);
     mesh.makePlan(3.0, 50);
     entities.push(new Entity(mesh, "Floor", Matrix.I(4)));
 
     // BACKGROUND PLAN
     material = new MeshMaterial(
-        "textures/rust/rustediron2_basecolor.png",
-        "textures/rust/rustediron2_normal2.png",
-        "textures/rust/rustediron2_roughness.png",
-        "textures/rust/rustediron2_ao.png",
-        "textures/rust/rustediron2_metallic.png");
+        "textures/rust/rust_BC.png",
+        "textures/rust/rust_N.png",
+        "textures/rust/rust_R.png",
+        "textures/rust/rust_AO.png",
+        "textures/rust/rust_M.png");
     mesh = new Mesh(material);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Background", Matrix.I(4)));
@@ -293,7 +293,7 @@ function initUBOs(){
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
-    console.log(uniformPerDrawBuffer);
+    //console.log(uniformPerDrawBuffer);
 
     // Create and bind lights to light_UBO
     var lightData = createLights();

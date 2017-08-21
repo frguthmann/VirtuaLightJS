@@ -123,6 +123,7 @@ function start() {
     initShadowMapFrameBuffer();
 
     console.log("Main initialization done");
+    console.log(gl.UNIFORM_BLOCK_DATA_SIZE);
 
     // The scene will be drawn only if the default texture is loaded
     drawSceneIfReady();
@@ -230,7 +231,7 @@ function loadObjects(){
     material = new MeshMaterial(
         "models/ball/export3dcoat_lambert3SG_color.png",
         "models/ball/export3dcoat_lambert3SG_nmap.png",
-        "models/ball/export3dcoat_lambert3SG_gloss.png",
+        "models/ball/ball_R.png",
         "models/ball/materialball_ao.png",
         "models/ball/export3dcoat_lambert3SG_metalness.png");
     mesh = new Mesh(material);
@@ -292,6 +293,7 @@ function initUBOs(){
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
+    console.log(uniformPerDrawBuffer);
 
     // Create and bind lights to light_UBO
     var lightData = createLights();

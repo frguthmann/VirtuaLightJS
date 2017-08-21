@@ -515,19 +515,20 @@ function createLights(prog, uboIdx){
         }
     }
     
+    // Get all the data into an array
+    var data = flattenObject(dataLights).concat(lights.length);
+    // Figure out how much we need to pad
+    var paddingLeft = (gl.getActiveUniformBlockParameter(prog, uboIdx, gl.UNIFORM_BLOCK_DATA_SIZE) - data.length * 4) / 4.0;
+    // Padd it with -1
+    for(var i=0; i<paddingLeft; i++){
+        data.push(-1.0);
+    }
+
     // Forget about the dummy data, we just had to send it once to the graphic card
     dataLights = dataLights.slice(0,lights.length);
 
-    // Get all the data into an array
-    var unpaddedData = flattenObject(dataLights).concat(lights.length);
-    // Figure out how much we need to pad
-    var paddingLeft = (gl.getActiveUniformBlockParameter(prog, uboIdx, gl.UNIFORM_BLOCK_DATA_SIZE) - unpaddedData.length * 4) / 4.0;
-    // Padd it with -1
-    for(var i=0; i<paddingLeft; i++){
-        unpaddedData.push(-1.0);
-    }
-
-    return new Float32Array(unpaddedData);
+    // Send the dat in the right format
+    return new Float32Array(data);
 }
 
 function padTo256(){

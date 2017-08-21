@@ -17,7 +17,7 @@ h3, p{
     display:inline;
 }
 
-.github-fork-ribbon.right-bottom:before {
+.github-fork-ribbon.left-bottom:before {
     background-color: #11151f;
 }
 

@@ -288,7 +288,7 @@ function initUBOs(){
     gl.uniformBlockBinding(shaderProgram, uniformPerPassLocation, 1);
 
     // Create transform UBO and bind it to data
-    createMatrixTransforms();
+    transforms = createMatrixTransforms(shaderProgram, 0);
     uniformPerDrawBuffer = gl.createBuffer();
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferData(gl.UNIFORM_BUFFER, transforms, gl.DYNAMIC_DRAW);
@@ -483,11 +483,16 @@ function initShadowMapFrameBuffer(){
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
-function createMatrixTransforms(){
+function createMatrixTransforms(prog, uboIdx){
     pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
     nMatrix  = Matrix.I(4);
+    
     // mvMatrix + nMatrix + pMatrix
-    transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(Matrix.I(4).flatten()));
+    var data = ((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(Matrix.I(4).flatten());
+    // Padding is implementation dependent (Windows vs Unix)
+    getUBOPadding(data, prog, uboIdx);
+
+    return new Float32Array(data);
 }
 
 function createLights(prog, uboIdx){
@@ -512,12 +517,8 @@ function createLights(prog, uboIdx){
     
     // Get all the data into an array
     var data = flattenObject(dataLights).concat(lights.length);
-    // Figure out how much we need to pad
-    var paddingLeft = (gl.getActiveUniformBlockParameter(prog, uboIdx, gl.UNIFORM_BLOCK_DATA_SIZE) - data.length * 4) / 4.0;
-    // Padd it with -1
-    for(var i=0; i<paddingLeft; i++){
-        data.push(-1.0);
-    }
+    // Padding is implementation dependent (Windows vs Unix)
+    getUBOPadding(data, prog, uboIdx);
 
     // Forget about the dummy data, we just had to send it once to the graphic card
     dataLights = dataLights.slice(0,lights.length);
@@ -526,8 +527,13 @@ function createLights(prog, uboIdx){
     return new Float32Array(data);
 }
 
-function padTo256(){
-
+function getUBOPadding(data, prog, uboIdx){
+    // Figure out how much we need to pad
+    var paddingLeft = (gl.getActiveUniformBlockParameter(prog, uboIdx, gl.UNIFORM_BLOCK_DATA_SIZE) - data.length * 4) / 4.0;
+    // Padd it with -1.0
+    for(var i=0; i<paddingLeft; i++){
+        data.push(-1.0);
+    }
 }
 
 function enableLightDisplay(lightPos, i){

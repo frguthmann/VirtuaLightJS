@@ -77,6 +77,12 @@ function keyboardHandler(e) {
                 guiObj.sceneMode = "Normal";
             }
         break;
+        case 107:
+            camera.zoom(-1.0);
+        break;
+        case 109:
+            camera.zoom(1.0);
+        break;
         default:
             console.log("You pressed: " + e.keyCode);
         break;

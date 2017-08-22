@@ -101,11 +101,13 @@ function start() {
         var verticesIndexBuffer     = gl.createBuffer();
         var verticesNormalBuffer    = gl.createBuffer();
         var verticesTexCoordsBuffer = gl.createBuffer();
+
+        var hasUV = (entities[i].mesh.m_UV.length > 0);
     
         // Initiate buffers
-        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
+        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV);
         // Init VAO
-        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
+        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV);
         // Init DepthVAO
         initDepthVAO(verticesBuffer, verticesIndexBuffer);
     }
@@ -302,7 +304,7 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer) {
+function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV) {
 
     // Vertex Buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -323,13 +325,15 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
     // Texture Buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
-    var texCoords = new Float32Array(flattenObject(mesh.m_UV));
-    gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    if(hasUV){
+        gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
+        var texCoords = new Float32Array(flattenObject(mesh.m_UV));
+        gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    }
 }
 
-function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer){
+function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV){
 
     // Create buffer location attributes
     var vertexPositionAttribute = 0;
@@ -351,10 +355,12 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     gl.vertexAttribPointer(vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
 
     // Send texture coordinates
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
-    gl.enableVertexAttribArray(texCoordsAttribute);   
-    gl.vertexAttribPointer(texCoordsAttribute, 2, gl.FLOAT, false, 0, 0);
-    
+    if(hasUV){
+        gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
+        gl.enableVertexAttribArray(texCoordsAttribute);   
+        gl.vertexAttribPointer(texCoordsAttribute, 2, gl.FLOAT, false, 0, 0);
+    }
+
     // Send indexes
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
 
@@ -568,7 +574,7 @@ function enableLightDisplay(lightPos, i){
     mesh.m_normals = mesh.m_normals.concat(norm);
 
     // DEBUG
-    mesh.computeSphericalUV();
+    //mesh.computeSphericalUV();
 }
 
 function boxFromLight(lightPos){

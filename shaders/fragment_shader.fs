@@ -73,16 +73,10 @@ void main(void) {
     int nbLights = int(u_perPass.nbLights);
 
     vec3 albedo = pow(BiCubic(albedoMap, vTexCoords).rgb, vec3(2.2));
-    /*float roughness = BiCubic(roughnessMap, vTexCoords).r;
+    float roughness = BiCubic(roughnessMap, vTexCoords).r;
     float ao = BiCubic(aoMap, vTexCoords).r;
     float fresnel = BiCubic(fresnelMap, vTexCoords).r;
-    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );*/
-
-    //vec3 albedo = pow(BiCubic(albedoMap, vTexCoords).rgb, vec3(2.2));
-    float roughness = texture(roughnessMap, vTexCoords).r;
-    float ao = texture(aoMap, vTexCoords).r;
-    float fresnel = texture(fresnelMap, vTexCoords).r;
-    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords);
+    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );
 
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 
@@ -309,8 +303,7 @@ vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord)
 {
     // assume N, the interpolated vertex normal and 
     // V, the view vector (vertex to eye)
-    vec3 map = texture(normalMap, texcoord ).xyz;
-    //vec3 map = BiCubic(normalMap, texcoord).xyz;
+    vec3 map = BiCubic(normalMap, texcoord).xyz;
     map = map * 255./127. - 128./127.;
     map.y = - map.y;
     mat3 TBN = cotangent_frame(N, -V, texcoord);

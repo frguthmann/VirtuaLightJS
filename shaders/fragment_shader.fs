@@ -48,14 +48,19 @@ vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 f
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
 vec4 getLightColor(LightSource l, vec3 p);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
+vec3 getFilteredTexel(sampler2D texture, vec2 off);
 
 // Normal Mapping Without Precomputed Tangents by Christian Schüler
 mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv);
-vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord );
+vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord);
 
 // Number rendering code below by P_Malin
 float DigitBin( const int x );
 float PrintValue( const vec2 vStringCoords, const float fValue, const float fMaxDigits, const float fDecimalPlaces );
+
+// Texture Filtering: https://www.codeproject.com/Articles/236394/Bi-Cubic-and-Bi-Linear-Interpolation-with-GLSL
+vec4 BiCubic( sampler2D textureSampler, vec2 TexCoord );
+float CatMullRom( float f );
 
 void main(void) {
     vec3 specular = vec3(0.);
@@ -67,11 +72,17 @@ void main(void) {
 
     int nbLights = int(u_perPass.nbLights);
 
-    vec3 albedo = pow(texture(albedoMap, vTexCoords).rgb, vec3(2.2));
+    vec3 albedo = pow(BiCubic(albedoMap, vTexCoords).rgb, vec3(2.2));
+    /*float roughness = BiCubic(roughnessMap, vTexCoords).r;
+    float ao = BiCubic(aoMap, vTexCoords).r;
+    float fresnel = BiCubic(fresnelMap, vTexCoords).r;
+    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );*/
+
+    //vec3 albedo = pow(BiCubic(albedoMap, vTexCoords).rgb, vec3(2.2));
     float roughness = texture(roughnessMap, vTexCoords).r;
     float ao = texture(aoMap, vTexCoords).r;
     float fresnel = texture(fresnelMap, vTexCoords).r;
-    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );
+    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords);
 
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 
@@ -107,16 +118,59 @@ void main(void) {
     vec3 ambient = vec3(0.015) * albedo * ao;
     vec3 resultingColor = ambient + LO * shadowFactor;
 
+    // Debug: print numbers
     /*vec2 vFontSize = vec2(8.0, 15.0);
-    resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, albedo.x, 4.0, 0.0));
-    */
+    resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, 
+        xy.x, 4.0, 10.0));*/
 
+    // Tone mapping by reinhart operator
+    //resultingColor = resultingColor / (resultingColor + vec3(1.0));
+    // Exposure tone mapping
+    float exposure = 1.0; // => should be a uniform
+    resultingColor = vec3(1.0) - exp(-resultingColor * exposure);
     // Gamma correction
-    resultingColor = resultingColor / (resultingColor + vec3(1.0));
     resultingColor = pow(resultingColor, vec3(1.0/2.2));
     
     color = vec4(resultingColor,1.0);
 
+}
+
+// Blaise-Guthmann texture filtering
+vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
+    //vec2 off = 2.999 * texelSize / 2.0;
+    //vec2 off = vTexCoords;
+    vec2 texelSize = 1.0 / vec2(textureSize(textureMap, 0));
+    vec2 texelNumber = floor(off / texelSize);
+    vec2 xy = 2.0 * (off - texelNumber*texelSize) / texelSize;
+
+    vec3 ta,tx,ty,tc;
+    float xoff = xy.x > 1.0 ? 1.0 : -1.0;
+    float yoff = xy.y > 1.0 ? 1.0 : -1.0;
+
+    ta = texture(textureMap, off).rgb;
+
+    if(xy.x>=1.0){
+        xy.x-=1.0;
+        tx = texture(textureMap, off + vec2(texelSize.x,0.0)).rgb;
+    }else{
+        xy.x = 1.0 - xy.x;
+        tx = texture(textureMap, off - vec2(texelSize.x,0.0)).rgb;
+    }
+
+    if(xy.y>=1.0){
+        xy.y-=1.0;
+        ty = texture(textureMap, off + vec2(0.0,texelSize.y)).rgb;
+    }else{
+        xy.y = 1.0 - xy.y;
+        ty = texture(textureMap, off - vec2(0.0,texelSize.y)).rgb;
+    }
+
+    tc = texture(textureMap, off + texelSize * vec2(xoff, yoff)).rgb;
+
+    float d1 = sqrt(xy.x * xy.x + xy.y * xy.y);
+    float d = d1 > 1.0 ? (d1 - 1.0) / (sqrt(2.0) - 1.0) : 0.0;
+
+    return (xy.x * tx + (1.0-xy.x) * ta + xy.y * ty + (1.0-xy.y) * ta + d * tc + (1.0-d) * ta ) / 3.0;
 }
 
 // Light intensity attenuation
@@ -251,11 +305,12 @@ mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv)
     return mat3( T * invmax, B * invmax, N );
 }
 
-vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord )
+vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord)
 {
     // assume N, the interpolated vertex normal and 
     // V, the view vector (vertex to eye)
     vec3 map = texture(normalMap, texcoord ).xyz;
+    //vec3 map = BiCubic(normalMap, texcoord).xyz;
     map = map * 255./127. - 128./127.;
     map.y = - map.y;
     mat3 TBN = cotangent_frame(N, -V, texcoord);
@@ -296,6 +351,66 @@ float PrintValue( const vec2 vStringCoords, const float fValue, const float fMax
         }
     }
     return floor(mod((fCharBin / pow(2.0, floor(fract(vStringCoords.x) * 4.0) + (floor(vStringCoords.y * 5.0) * 4.0))), 2.0));
+}
+
+
+//---------------------------------------------------------------
+// Bicubic texture filtering with Catmull-Rom interpolation by Santhosh G_
+//
+// https://www.codeproject.com/Articles/236394/Bi-Cubic-and-Bi-Linear-Interpolation-with-GLSL
+//---------------------------------------------------------------
+
+vec4 BiCubic( sampler2D textureSampler, vec2 TexCoord )
+{
+    vec2 fsize = vec2(textureSize(textureSampler, 0));
+    vec2 texelSize = 1.0 / fsize;
+    vec4 nSum = vec4( 0.0, 0.0, 0.0, 0.0 );
+    vec4 nDenom = vec4( 0.0, 0.0, 0.0, 0.0 );
+    float a = fract( TexCoord.x * fsize.x ); // get the decimal part
+    float b = fract( TexCoord.y * fsize.y ); // get the decimal part
+    for( int m = -1; m <=2; m++ )
+    {
+        for( int n =-1; n<= 2; n++)
+        {
+            vec4 vecData = texture(textureSampler, 
+                               TexCoord + vec2(texelSize.x * float( m ), 
+                    texelSize.y * float( n )));
+            float f  = CatMullRom( float( m ) - a );
+            vec4 vecCooef1 = vec4( f,f,f,f );
+            float f1 = CatMullRom ( -( float( n ) - b ) );
+            vec4 vecCoeef2 = vec4( f1, f1, f1, f1 );
+            nSum = nSum + ( vecData * vecCoeef2 * vecCooef1  );
+            nDenom = nDenom + (( vecCoeef2 * vecCooef1 ));
+        }
+    }
+    return nSum / nDenom;
+}
+
+float CatMullRom( float f )
+{
+    const float B = 0.0;
+    const float C = 0.5;
+    if( f < 0.0 )
+    {
+        f = -f;
+    }
+    if( f < 1.0 )
+    {
+        return ( ( 12. - 9. * B - 6. * C ) * ( f * f * f ) +
+            ( -18. + 12. * B + 6. *C ) * ( f * f ) +
+            ( 6. - 2. * B ) ) / 6.0;
+    }
+    else if( f >= 1.0 && f < 2.0 )
+    {
+        return ( ( -B - 6. * C ) * ( f * f * f )
+            + ( 6. * B + 30. * C ) * ( f *f ) +
+            ( - ( 12. * B ) - 48. * C  ) * f +
+            8. * B + 24. * C)/ 6.0;
+    }
+    else
+    {
+        return 0.0;
+    }
 }
 
 `;

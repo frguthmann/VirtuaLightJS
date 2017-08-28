@@ -65,7 +65,7 @@ class Camera {
         var fovStp = Math.pow(60.0/30.0, 1.0 / (Math.log(40.0/0.001) / Math.log(1.1)) );
         var fovStep = step > 0 ? fovStp : 2.0-fovStp;
         this.fovAngle = Math.max(Math.min(60,this.fovAngle*fovStep),30);
-        pMatrix = makePerspective(this.fovAngle, canvas.width/canvas.height, this.nearPlane, this.farPlane);
+        pMatrix = makePerspective(this.fovAngle, canvas.clientWidth / canvas.clientHeight, this.nearPlane, this.farPlane);
 
         this.shouldSetup = true;
     }

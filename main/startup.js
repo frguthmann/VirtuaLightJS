@@ -490,7 +490,7 @@ function initShadowMapFrameBuffer(){
 }
 
 function createMatrixTransforms(prog, uboIdx){
-    pMatrix = makePerspective(camera.fovAngle, canvas.width/canvas.height, camera.nearPlane, camera.farPlane);
+    pMatrix = makePerspective(camera.fovAngle, canvas.clientWidth / canvas.clientHeight , camera.nearPlane, camera.farPlane);
     nMatrix  = Matrix.I(4);
     
     // mvMatrix + nMatrix + pMatrix

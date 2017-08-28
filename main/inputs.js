@@ -8,6 +8,8 @@ function initInputs(){
     canvas.addEventListener("mousedown", mouseDown);
     canvas.addEventListener("mouseup", mouseUp);
     canvas.addEventListener("mousewheel", mouseWheelHandler, false);
+    canvas.addEventListener("dblclick", function() {screenfull.toggle()}, false);
+    screenfull.on('change', () => { handleFullscreenChange(); });
     document.addEventListener("keydown", keyboardHandler);
     canvas.addEventListener('contextmenu', function(e) {e.preventDefault();}, false);
     // Firefox...
@@ -88,4 +90,22 @@ function keyboardHandler(e) {
         break;
     }
     return false;
+}
+
+function handleFullscreenChange(){
+    // Do not select anythin or you won't be able to move the camera
+    window.getSelection().removeAllRanges();
+    
+    // Change canvas size and style
+    if(screenfull.isFullscreen){
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+        canvas.style.borderWidth = "0px";
+    }else{
+        canvas.width  = 640;
+        canvas.height = 480;
+        canvas.style.borderWidth = "1px";
+    }
+    // Update aspect ratio of projection matrix
+    pMatrix = makePerspective(camera.fovAngle, canvas.width / canvas.height , camera.nearPlane, camera.farPlane);
 }

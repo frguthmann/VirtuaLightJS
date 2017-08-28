@@ -48,7 +48,7 @@ function render(){
     // Get back to backface culling for normal rendering
     gl.cullFace(gl.BACK);
     // Reload original viewport
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     // Use lighting program
     gl.useProgram(shaderProgram);
@@ -212,7 +212,7 @@ function updateSpinner(){
     var loadPercent = document.getElementById("loadPercent");
     loadPercent.textContent = Math.floor((MeshMaterial.nbTextureLoaded / MeshMaterial.nbTextureToLoad) * 100) + "%";
     if(MeshMaterial.nbTextureLoaded == MeshMaterial.nbTextureToLoad){
-        var spinner = document.getElementById("spinner");
+        var spinner = document.getElementById("loader");
         spinner.parentNode.removeChild(spinner);
     }
 }

@@ -6,6 +6,7 @@
     right: 0;
     margin:auto;
     border-style: solid;
+    visibility: none;
     border-width: 1px;
 }
 
@@ -22,7 +23,7 @@ h3, p{
     background-color: #11151f;
 }
 
-#spinner {
+#loader {
     position: fixed;
     bottom: 0;
     left: 0;

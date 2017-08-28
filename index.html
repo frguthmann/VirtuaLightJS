@@ -18,6 +18,7 @@
         <script type="text/javascript" src="utils/glUtils.js"></script>
         <script type="text/javascript" src="utils/matrix_utility.js"></script>
         <script type="text/javascript" src="utils/custom_utils.js"></script>
+        <script type="text/javascript" src="utils/screenfull.js"></script>
 
         <script type="text/javascript" src="shaders/vertex_shader.vs"></script>
         <script type="text/javascript" src="shaders/fragment_shader.fs"></script>
@@ -42,30 +43,26 @@
         <script type="text/javascript" src="main/main_loop.js"></script>
     </head>
     
+    
+    <!-- Fullscreen: ondblclick="screenfull.toggle(document.getElementById('glCanvas'));" -->
+
     <body onload="start()">
 
-        <div id="credits">
-            <h3>Models:</h3> <br>
-            <p>Material ball in 3D-Coat by 3d-coat is licensed under CC Attribution <br>
-            Mask Paint Ball by Odissey Super is licensed under CC Attribution <br>
-            Withered Blade by French Baguette is licensed under CC Attribution</p>
-        </div>
-
-        <canvas id="glCanvas" width="640" height="480" style="visibility: none;">
+        <canvas id="glCanvas" width="640" height="480">
             Your browser doesn't appear to support the 
             <code>&lt;canvas&gt;</code> element.
         </canvas>
 
-        <div id="spinner">
+        <div id="loader">
             <div class="sk-folding-cube">
               <div class="sk-cube1 sk-cube"></div>
               <div class="sk-cube2 sk-cube"></div>
               <div class="sk-cube4 sk-cube"></div>
               <div class="sk-cube3 sk-cube"></div>
             </div>
-        </div>
-        <div id="loadPercent">
-        0%
+            <div id="loadPercent">
+            0%
+            </div>
         </div>
 
        <a target="_blank" class="github-fork-ribbon left-bottom fixed" href="https://github.com/frguthmann/VirtuaLightJS" data-ribbon="Fork me on GitHub" title="Fork me on GitHub">Fork me on GitHub</a>

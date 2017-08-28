@@ -59,6 +59,7 @@ float DigitBin( const int x );
 float PrintValue( const vec2 vStringCoords, const float fValue, const float fMaxDigits, const float fDecimalPlaces );
 
 // Texture Filtering: https://www.codeproject.com/Articles/236394/Bi-Cubic-and-Bi-Linear-Interpolation-with-GLSL
+vec4 tex2DBiLinear( sampler2D textureSampler_i, vec2 texCoord_i );
 vec4 BiCubic( sampler2D textureSampler, vec2 TexCoord );
 float CatMullRom( float f );
 
@@ -72,10 +73,10 @@ void main(void) {
 
     int nbLights = int(u_perPass.nbLights);
 
-    vec3 albedo = pow(BiCubic(albedoMap, vTexCoords).rgb, vec3(2.2));
-    float roughness = BiCubic(roughnessMap, vTexCoords).r;
-    float ao = BiCubic(aoMap, vTexCoords).r;
-    float fresnel = BiCubic(fresnelMap, vTexCoords).r;
+    vec3 albedo = pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2));
+    float roughness = tex2DBiLinear(roughnessMap, vTexCoords).r;
+    float ao = tex2DBiLinear(aoMap, vTexCoords).r;
+    float fresnel = tex2DBiLinear(fresnelMap, vTexCoords).r;
     vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );
 
     // Fresnel f0 term
@@ -127,44 +128,6 @@ void main(void) {
     
     color = vec4(resultingColor,1.0);
 
-}
-
-// Blaise-Guthmann texture filtering
-vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
-    //vec2 off = 2.999 * texelSize / 2.0;
-    //vec2 off = vTexCoords;
-    vec2 texelSize = 1.0 / vec2(textureSize(textureMap, 0));
-    vec2 texelNumber = floor(off / texelSize);
-    vec2 xy = 2.0 * (off - texelNumber*texelSize) / texelSize;
-
-    vec3 ta,tx,ty,tc;
-    float xoff = xy.x > 1.0 ? 1.0 : -1.0;
-    float yoff = xy.y > 1.0 ? 1.0 : -1.0;
-
-    ta = texture(textureMap, off).rgb;
-
-    if(xy.x>=1.0){
-        xy.x-=1.0;
-        tx = texture(textureMap, off + vec2(texelSize.x,0.0)).rgb;
-    }else{
-        xy.x = 1.0 - xy.x;
-        tx = texture(textureMap, off - vec2(texelSize.x,0.0)).rgb;
-    }
-
-    if(xy.y>=1.0){
-        xy.y-=1.0;
-        ty = texture(textureMap, off + vec2(0.0,texelSize.y)).rgb;
-    }else{
-        xy.y = 1.0 - xy.y;
-        ty = texture(textureMap, off - vec2(0.0,texelSize.y)).rgb;
-    }
-
-    tc = texture(textureMap, off + texelSize * vec2(xoff, yoff)).rgb;
-
-    float d1 = sqrt(xy.x * xy.x + xy.y * xy.y);
-    float d = d1 > 1.0 ? (d1 - 1.0) / (sqrt(2.0) - 1.0) : 0.0;
-
-    return (xy.x * tx + (1.0-xy.x) * ta + xy.y * ty + (1.0-xy.y) * ta + d * tc + (1.0-d) * ta ) / 3.0;
 }
 
 // Light intensity attenuation
@@ -271,7 +234,46 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     }
 
     return shadow;
-}  
+}
+
+
+// Blaise-Guthmann texture filtering
+vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
+    //vec2 off = 2.999 * texelSize / 2.0;
+    //vec2 off = vTexCoords;
+    vec2 texelSize = 1.0 / vec2(textureSize(textureMap, 0));
+    vec2 texelNumber = floor(off / texelSize);
+    vec2 xy = 2.0 * (off - texelNumber*texelSize) / texelSize;
+
+    vec3 ta,tx,ty,tc;
+    float xoff = xy.x > 1.0 ? 1.0 : -1.0;
+    float yoff = xy.y > 1.0 ? 1.0 : -1.0;
+
+    ta = texture(textureMap, off).rgb;
+
+    if(xy.x>=1.0){
+        xy.x-=1.0;
+        tx = texture(textureMap, off + vec2(texelSize.x,0.0)).rgb;
+    }else{
+        xy.x = 1.0 - xy.x;
+        tx = texture(textureMap, off - vec2(texelSize.x,0.0)).rgb;
+    }
+
+    if(xy.y>=1.0){
+        xy.y-=1.0;
+        ty = texture(textureMap, off + vec2(0.0,texelSize.y)).rgb;
+    }else{
+        xy.y = 1.0 - xy.y;
+        ty = texture(textureMap, off - vec2(0.0,texelSize.y)).rgb;
+    }
+
+    tc = texture(textureMap, off + texelSize * vec2(xoff, yoff)).rgb;
+
+    float d1 = sqrt(xy.x * xy.x + xy.y * xy.y);
+    float d = d1 > 1.0 ? (d1 - 1.0) / (sqrt(2.0) - 1.0) : 0.0;
+
+    return (xy.x * tx + (1.0-xy.x) * ta + xy.y * ty + (1.0-xy.y) * ta + d * tc + (1.0-d) * ta ) / 3.0;
+}
 
 
 //---------------------------------------------------------------
@@ -303,7 +305,7 @@ vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord)
 {
     // assume N, the interpolated vertex normal and 
     // V, the view vector (vertex to eye)
-    vec3 map = BiCubic(normalMap, texcoord).xyz;
+    vec3 map = tex2DBiLinear(normalMap, texcoord).xyz;
     map = map * 255./127. - 128./127.;
     map.y = - map.y;
     mat3 TBN = cotangent_frame(N, -V, texcoord);
@@ -348,10 +350,33 @@ float PrintValue( const vec2 vStringCoords, const float fValue, const float fMax
 
 
 //---------------------------------------------------------------
-// Bicubic texture filtering with Catmull-Rom interpolation by Santhosh G_
+// Bilinear / Bicubic texture filtering with Catmull-Rom interpolation by Santhosh G_
 //
 // https://www.codeproject.com/Articles/236394/Bi-Cubic-and-Bi-Linear-Interpolation-with-GLSL
 //---------------------------------------------------------------
+
+// Function to get interpolated texel data from a texture with GL_NEAREST property.
+// Bi-Linear interpolation is implemented in this function with the 
+// help of nearest four data.
+vec4 tex2DBiLinear( sampler2D textureSampler_i, vec2 texCoord_i )
+{
+    vec2 fsize = vec2(textureSize(textureSampler_i, 0));
+    vec2 texelSize = 1.0 / fsize;
+
+    vec4 p0q0 = texture(textureSampler_i, texCoord_i);
+    vec4 p1q0 = texture(textureSampler_i, texCoord_i + vec2(texelSize.x, 0));
+
+    vec4 p0q1 = texture(textureSampler_i, texCoord_i + vec2(0, texelSize.y));
+    vec4 p1q1 = texture(textureSampler_i, texCoord_i + vec2(texelSize.x , texelSize.y));
+
+    float a = fract( texCoord_i.x * fsize.x ); // Get Interpolation factor for X direction.
+
+    vec4 pInterp_q0 = mix( p0q0, p1q0, a );     // Interpolates top row in X direction.
+    vec4 pInterp_q1 = mix( p0q1, p1q1, a );     // Interpolates bottom row in X direction.
+
+    float b = fract( texCoord_i.y * fsize.y );  // Get Interpolation factor for Y direction.
+    return mix( pInterp_q0, pInterp_q1, b );    // Interpolate in Y direction.
+}
 
 vec4 BiCubic( sampler2D textureSampler, vec2 TexCoord )
 {

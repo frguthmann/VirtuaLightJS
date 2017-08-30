@@ -14,14 +14,37 @@ class MeshMaterial{
         }
 
         // Async loading of actual textures, webgl will start rendering before this is over
-        this.assignTexture("albedo", albedo);
-        this.assignTexture("normal", normal);
-        this.assignTexture("roughness", roughness);
-        this.assignTexture("ao", ao);
-        this.assignTexture("fresnel", fresnel);
+        this.assignTexture("albedo", albedo, false);
+        this.assignTexture("normal", normal, false);
+        this.assignTexture("roughness", roughness, false);
+        this.assignTexture("ao", ao, false);
+        this.assignTexture("fresnel", fresnel, false);
     }
 
-    static loadTexture(texturePath, callback){
+    assignTexture(attribute, texturePath, isHDR){    
+        let meshMat = this;
+        /*  Assign only when the texture is loaded. 
+            The default texture is set as place holder in the meantime.*/
+        if(!isHDR){
+            MeshMaterial.loadTexture(texturePath, false, textureLoadCallback);
+        }else{
+            MeshMaterial.loadTexture(texturePath, true, textureLoadCallback);
+        }
+
+        function textureLoadCallback(texture){
+            meshMat[attribute] = texture;
+
+                // Keep track of how much there is left to load
+                if(!MeshMaterial.nbTextureLoaded){
+                    MeshMaterial.nbTextureLoaded = 0;
+                }
+                MeshMaterial.nbTextureLoaded++;
+
+                updateSpinner();
+        }
+    }
+    
+    static loadTexture(texturePath, isHDR, callback){
 
         if(!texturePath){
             return MeshMaterial.defaultTexture;
@@ -29,10 +52,16 @@ class MeshMaterial{
 
         MeshMaterial.nbTextureToLoad++;
         
-        var tester = new Image();
+        var image;
+        if(!isHDR){
+            image = new Image(); 
+        }else{
+            image = new HDRImage();
+        }
+        
         var texture = gl.createTexture();
 
-        tester.onload=function() {
+        image.onload=function() {
             gl.bindTexture(gl.TEXTURE_2D, texture);
             // set the texture wrapping/filtering options (on the currently bound texture object)
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -40,8 +69,12 @@ class MeshMaterial{
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             // load and generate the texture
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, tester.width, tester.height, 0, gl.RGB, gl.UNSIGNED_BYTE, tester);
-            gl.generateMipmap(gl.TEXTURE_2D);
+            if(!isHDR){
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, image.width, image.height, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
+                gl.generateMipmap(gl.TEXTURE_2D);
+            }else{
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB32F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image.dataFloat)
+            }
             gl.bindTexture(gl.TEXTURE_2D, null);
 
             //console.log("Loaded " + texturePath + " successfully");
@@ -51,11 +84,11 @@ class MeshMaterial{
             }
         };
         
-        tester.onerror=function() { // when .png failed
+        image.onerror=function() { // when .png failed
             console.log("Couldn't load " + texturePath);   
         };
         
-        tester.src = texturePath; // execute the test
+        image.src = texturePath; // execute the test
         
         return texture;
     }
@@ -64,23 +97,7 @@ class MeshMaterial{
         const texturePath = "textures/default.png"
         /*  Assign texture now, even if it's not loaded yet.
             The callback will notify main when the texture is ready*/
-        MeshMaterial.defaultTexture = MeshMaterial.loadTexture(texturePath, callback);
+        MeshMaterial.defaultTexture = MeshMaterial.loadTexture(texturePath, false, callback);
     }
 
-    assignTexture(attribute, texturePath){    
-        let meshMat = this;
-        /*  Assign only when the texture is loaded. 
-            The default texture is set as place holder in the meantime.*/
-        MeshMaterial.loadTexture(texturePath, function(texture){
-        meshMat[attribute] = texture;
-
-        // Keep track of how much there is left to load
-        if(!MeshMaterial.nbTextureLoaded){
-            MeshMaterial.nbTextureLoaded = 0;
-        }
-        MeshMaterial.nbTextureLoaded++;
-
-        updateSpinner();
-    });
-    }
 }

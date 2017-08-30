@@ -279,6 +279,40 @@ function loadObjects(){
     entities[entities.length-1].pos = [1.5,1.5,-3];
     entities[entities.length-1].rot = [0,90];
     entities[entities.length-1].scale = 1.5;
+
+    // Test cube
+    material = new MeshMaterial();
+    material.assignTexture("albedo", "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr", true);
+    mesh = new Mesh(material);
+    mesh.makeCube(0.2);
+    mesh.computeSphericalUV();
+    entities.push(new Entity(mesh, "Cube", Matrix.I(4)));
+    entities[entities.length-1].pos = [0,1.5,0];
+
+    /*var myHDR = new HDRImage();
+    myHDR.src = 'ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr';
+    myHDR.onload = function() {
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        // set the texture wrapping/filtering options (on the currently bound texture object)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        // load and generate the texture
+        var w = 3200, h = 1600;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB32F, w, h, 0, gl.RGB, gl.FLOAT, myHDR.dataFloat)
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        material.albedo = texture;
+        console.log(entities[4]);
+
+        mesh = new Mesh(material);
+        mesh.makePlan2(1.0);
+        entities.push(new Entity(mesh, "test", Matrix.I(4)));
+        entities[entities.length-1].rot = [0,90];
+        console.log(entities);
+    }*/
+
 }
 
 function initUBOs(){
@@ -545,47 +579,7 @@ function getUBOPadding(data, prog, uboIdx){
 function enableLightDisplay(lightPos, i){
     
     var mesh = new Mesh();
+    mesh.makeCube(cubeSize);
     var entity = new Entity(mesh, "Light " + i, Matrix.Translation(Vector.create(lightPos)));
     entities.push(entity);
-
-    var pos = boxFromLight(lightPos);
-    mesh.m_positions = mesh.m_positions.concat(pos);
-
-    var idx = [
-        $V([0,  2,  1]),      $V([2,  3,  1]),   // front
-        $V([4,  5,  6]),      $V([5,  7,  6]),   // back
-        $V([4,  0,  5]),      $V([0,  1,  5]),   // top
-        $V([6,  7,  2]),      $V([7,  3,  2]),   // bottom
-        $V([6,  0,  4]),      $V([6,  2,  0]),   // right
-        $V([5,  1,  7]),      $V([1,  3,  7])    // left*/
-    ];
-    mesh.m_triangles = mesh.m_triangles.concat(idx);
-
-    var norm = [
-        $V([ 1,  1, -1]),
-        $V([-1,  1, -1]),
-        $V([ 1, -1, -1]),
-        $V([ 1,  1,  1]),
-        $V([-1,  1,  1]),
-        $V([ 1, -1,  1]),
-        $V([-1, -1, -1]),
-        $V([-1, -1,  1])
-    ];
-    mesh.m_normals = mesh.m_normals.concat(norm);
-
-    // DEBUG
-    //mesh.computeSphericalUV();
-}
-
-function boxFromLight(lightPos){
-    return [
-        $V([ cubeSize,  cubeSize, -cubeSize]),
-        $V([-cubeSize,  cubeSize, -cubeSize]),
-        $V([ cubeSize, -cubeSize, -cubeSize]),
-        $V([-cubeSize, -cubeSize, -cubeSize]),
-        $V([ cubeSize,  cubeSize,  cubeSize]),
-        $V([-cubeSize,  cubeSize,  cubeSize]),
-        $V([ cubeSize, -cubeSize,  cubeSize]),
-        $V([-cubeSize, -cubeSize,  cubeSize])
-    ];
 }

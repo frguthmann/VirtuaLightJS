@@ -220,6 +220,40 @@ class Mesh {
         this.m_triangles.push($V([7,5,6]));
     }
 
+    makeCube(cubeSize){
+        
+        this.m_positions = [
+        $V([ cubeSize,  cubeSize, -cubeSize]),
+        $V([-cubeSize,  cubeSize, -cubeSize]),
+        $V([ cubeSize, -cubeSize, -cubeSize]),
+        $V([-cubeSize, -cubeSize, -cubeSize]),
+        $V([ cubeSize,  cubeSize,  cubeSize]),
+        $V([-cubeSize,  cubeSize,  cubeSize]),
+        $V([ cubeSize, -cubeSize,  cubeSize]),
+        $V([-cubeSize, -cubeSize,  cubeSize])
+        ];
+
+        this.m_triangles = [
+            $V([0,  2,  1]),      $V([2,  3,  1]),   // front
+            $V([4,  5,  6]),      $V([5,  7,  6]),   // back
+            $V([4,  0,  5]),      $V([0,  1,  5]),   // top
+            $V([6,  7,  2]),      $V([7,  3,  2]),   // bottom
+            $V([6,  0,  4]),      $V([6,  2,  0]),   // right
+            $V([5,  1,  7]),      $V([1,  3,  7])    // left*/
+        ];
+
+        this.m_normals = [
+            $V([ 1,  1, -1]),
+            $V([-1,  1, -1]),
+            $V([ 1, -1, -1]),
+            $V([ 1,  1,  1]),
+            $V([-1,  1,  1]),
+            $V([ 1, -1,  1]),
+            $V([-1, -1, -1]),
+            $V([-1, -1,  1])
+        ];
+    }
+
     makeSphere(res){
         this.clear();
         res = 4.0;

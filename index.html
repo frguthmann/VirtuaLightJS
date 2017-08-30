@@ -6,20 +6,25 @@
 
         <meta charset="UTF-8">
 
+        <!-- CSS -->
         <link rel="icon" type="image/png" href="favicon.png" />
         <link rel="stylesheet" type="text/css" href="style/style.css" />
         <link rel="stylesheet" type="text/css" href="style/gh-fork-ribbon.css">
         <link rel="stylesheet" type="text/css" href="style/css_spinner.css">
 
+        <!-- Libs -->
         <script type="text/javascript" src="libs/sylvester.js"></script>
         <script type="text/javascript" src="libs/stats.min.js"></script>
         <script type="text/javascript" src="libs/dat.gui.min.js"></script>
+        <script type="text/javascript" src="libs/screenfull.js"></script>
+        <script type="text/javascript" src="libs/hdrpng.min.js"></script>
 
+        <!-- Utilitaries -->
         <script type="text/javascript" src="utils/glUtils.js"></script>
         <script type="text/javascript" src="utils/matrix_utility.js"></script>
         <script type="text/javascript" src="utils/custom_utils.js"></script>
-        <script type="text/javascript" src="utils/screenfull.js"></script>
 
+        <!-- Shaders -->
         <script type="text/javascript" src="shaders/vertex_shader.vs"></script>
         <script type="text/javascript" src="shaders/fragment_shader.fs"></script>
         <script type="text/javascript" src="shaders/depth_vertex_shader.vs"></script>
@@ -27,24 +32,24 @@
         <script type="text/javascript" src="shaders/quad_vertex_shader.vs"></script>
         <script type="text/javascript" src="shaders/quad_fragment_shader.fs"></script>
         
+        <!-- 3D models -->
         <script type="text/javascript" src="models/mask.js"></script>
         <script type="text/javascript" src="models/ball.js"></script>
         <script type="text/javascript" src="models/sword.js"></script>
 
+        <!-- Objects -->
         <script type="text/javascript" src="objects/lightsource.js"></script>
         <script type="text/javascript" src="objects/mesh.js"></script>
         <script type="text/javascript" src="objects/camera.js"></script>
         <script type="text/javascript" src="objects/entity.js"></script>
         <script type="text/javascript" src="objects/meshMaterial.js"></script>
        
+        <!-- Main loop logic -->
         <script type="text/javascript" src="main/gui.js"></script>
         <script type="text/javascript" src="main/inputs.js"></script>
         <script type="text/javascript" src="main/startup.js"></script> 
         <script type="text/javascript" src="main/main_loop.js"></script>
     </head>
-    
-    
-    <!-- Fullscreen: ondblclick="screenfull.toggle(document.getElementById('glCanvas'));" -->
 
     <body onload="start()">
 

@@ -18,3 +18,12 @@ var flattenObject = function(ob) {
     }
     return toReturn;
 };
+
+// Extension of vector type for element wise multiplication
+Vector.prototype.ewMult = function(vec2) {
+    var result = []
+    for(var i = 0; i < this.elements.length; i++) {
+        result.push( this.elements[i] * vec2.elements[i])
+    }
+    return $V(result);
+}

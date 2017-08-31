@@ -285,7 +285,7 @@ function loadObjects(){
     material.assignTexture("albedo", "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr", true);
     mesh = new Mesh(material);
     mesh.makeCube(0.2);
-    mesh.computeSphericalUV();
+    mesh.computeCubeUV();
     entities.push(new Entity(mesh, "Cube", Matrix.I(4)));
     entities[entities.length-1].pos = [0,1.5,0];
 

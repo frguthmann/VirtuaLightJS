@@ -118,6 +118,18 @@ class Mesh {
         }
     }
 
+    computeCubeUV(){
+        this.m_UV = [];
+        var positionSize = this.m_positions.length;
+        var invAtan = $V([1.0 / Math.PI, 1.0 / (2.0 * Math.PI)]);
+        for(var i=0; i<positionSize; i++){
+            var normedPos = this.m_positions[i].toUnitVector();
+            var uv = $V([Math.atan2(normedPos.e(3),normedPos.e(1)), Math.asin(normedPos.e(2))]);
+            uv = uv.ewMult(invAtan);
+            this.m_UV[i] = uv.add($V([0.5,0.5]));
+        }
+    }
+
     recomputeNormalsSimple() {
 
         this.m_normals = [];

@@ -23,6 +23,7 @@ class MeshMaterial{
 
     assignTexture(attribute, texturePath, isHDR){    
         let meshMat = this;
+        let path = texturePath;
         /*  Assign only when the texture is loaded. 
             The default texture is set as place holder in the meantime.*/
         if(!isHDR){
@@ -73,7 +74,7 @@ class MeshMaterial{
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, image.width, image.height, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
                 gl.generateMipmap(gl.TEXTURE_2D);
             }else{
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB32F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image.dataFloat)
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image.dataFloat)
             }
             gl.bindTexture(gl.TEXTURE_2D, null);
 

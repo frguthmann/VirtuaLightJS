@@ -56,8 +56,6 @@ function render(){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
 
-    /*gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, rustTexture);*/
     gl.disable(gl.CULL_FACE);
     drawAllObjects();
     gl.enable(gl.CULL_FACE);
@@ -94,6 +92,9 @@ function drawAllObjects(){
     // Render all entities with specific VAO / VBO / UBO 
     for(var i=0; i<vaos.length; i++){
         
+        if(i == vaos.length-3){
+            gl.uniform1i(iblUniform, 1);
+        }
         // The mvMatrix will be changed for each object, we need to store the original state
         mvPushMatrix();
 
@@ -117,6 +118,10 @@ function drawAllObjects(){
         gl.drawElements(scene.mode, entities[i].mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
         // UNBIND VAO
         gl.bindVertexArray(null);
+
+        if(i == vaos.length-3){
+            gl.uniform1i(iblUniform, 0);
+        }
 
         mvPopMatrix();
     }
@@ -173,6 +178,8 @@ function updateLightsUniformBuffer(){
 }
 
 function setTextures(material){
+    gl.activeTexture(gl.TEXTURE6);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubemap);
     if(material){
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, material.albedo);

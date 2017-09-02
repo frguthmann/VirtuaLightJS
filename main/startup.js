@@ -51,6 +51,9 @@ var max_lights = 5;
 // Size of the cube representing the light when rendering
 var cubeSize = 0.2;
 
+var iblUniform;
+var envCubemap;
+
 function start() {
     canvas = document.getElementById('glCanvas');
     
@@ -83,8 +86,17 @@ function start() {
     // Clear the color as well as the depth buffer.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Initiate shaders
+
+    // Test IBL
+    initSkyBox();
+}
+
+function startNext(){
+     // Initiate shaders
     initShaders();
+
+    iblUniform =  gl.getUniformLocation(shaderProgram, "isIBL");
+    gl.uniform1i(iblUniform, 0);
 
     // Set texture uniforms
     setSamplerUniforms();
@@ -125,6 +137,17 @@ function start() {
     initShadowMapFrameBuffer();
 
     console.log("Main initialization done");
+
+    /*skybox_vertex_shader = skybox_vertex_shader.replace(/^\s+|\s+$/g, '');
+    skybox_fragment_shader = skybox_fragment_shader.replace(/^\s+|\s+$/g, '');
+    skyboxProgram = createProgram(gl, skybox_vertex_shader, skybox_fragment_shader);
+    gl.uniform1i(gl.getUniformLocation(skyboxProgram, 'environmentMap'), 0);
+
+    // If creating the shader program failed, alert
+    if (!gl.getProgramParameter(skyboxProgram, gl.LINK_STATUS)) {
+        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(skyboxProgram));
+    }*/
+
 
     // The scene will be drawn only if the default texture is loaded
     drawSceneIfReady();
@@ -185,6 +208,7 @@ function setSamplerUniforms(){
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "roughnessMap"), 3);
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "aoMap"), 4);
     gl.uniform1i(gl.getUniformLocation(shaderProgram, "fresnelMap"), 5);
+    gl.uniform1i(gl.getUniformLocation(shaderProgram, 'environmentMap'), 6);
 }
 
 // Wait for both default texture and main initialization code to finish before drawing
@@ -276,43 +300,20 @@ function loadObjects(){
     mesh = new Mesh(material);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Background", Matrix.I(4)));
-    entities[entities.length-1].pos = [1.5,1.5,-3];
+    /*entities[entities.length-1].pos = [1.5,1.5,-3];
     entities[entities.length-1].rot = [0,90];
-    entities[entities.length-1].scale = 1.5;
+    entities[entities.length-1].scale = 1.5;*/
+    entities[entities.length-1].rot = [0,90];
+    entities[entities.length-1].scale = 5.0;
 
     // Test cube
-    material = new MeshMaterial();
-    material.assignTexture("albedo", "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr", true);
+    /*material = new MeshMaterial();
+    material.assignTexture("albedo", "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr", true);*/
     mesh = new Mesh(material);
     mesh.makeCube(0.2);
     mesh.computeCubeUV();
     entities.push(new Entity(mesh, "Cube", Matrix.I(4)));
     entities[entities.length-1].pos = [0,1.5,0];
-
-    /*var myHDR = new HDRImage();
-    myHDR.src = 'ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr';
-    myHDR.onload = function() {
-        var texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        // set the texture wrapping/filtering options (on the currently bound texture object)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        // load and generate the texture
-        var w = 3200, h = 1600;
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB32F, w, h, 0, gl.RGB, gl.FLOAT, myHDR.dataFloat)
-        gl.bindTexture(gl.TEXTURE_2D, null);
-        material.albedo = texture;
-        console.log(entities[4]);
-
-        mesh = new Mesh(material);
-        mesh.makePlan2(1.0);
-        entities.push(new Entity(mesh, "test", Matrix.I(4)));
-        entities[entities.length-1].rot = [0,90];
-        console.log(entities);
-    }*/
-
 }
 
 function initUBOs(){
@@ -349,7 +350,7 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     // Index buffer
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
     var triangles = new Uint16Array(flattenObject(mesh.m_triangles));
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triangles, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
     // Normals Buffer
@@ -476,6 +477,176 @@ function initQuad(){
     gl.enableVertexAttribArray(drawVertexTexLocation);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindVertexArray(null);
+}
+
+function initSkyBox(){
+
+    //var ext = gl.getExtension('EXT_color_buffer_half_float');
+
+    var captureFBO = gl.createFramebuffer();
+    var captureRBO = gl.createRenderbuffer();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
+
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, 512, 512);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);  
+
+    generate_skybox_vertex_shader = generate_skybox_vertex_shader.replace(/^\s+|\s+$/g, '');
+    generate_skybox_fragment_shader = generate_skybox_fragment_shader.replace(/^\s+|\s+$/g, '');
+    var generateSkyboxProgram = createProgram(gl, generate_skybox_vertex_shader, generate_skybox_fragment_shader);
+
+    // If creating the shader program failed, alert
+    if (!gl.getProgramParameter(generateSkyboxProgram, gl.LINK_STATUS)) {
+        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(generateSkyboxProgram));
+    }
+
+    gl.useProgram(generateSkyboxProgram);  
+
+    var equiRectUniform = gl.getUniformLocation(generateSkyboxProgram, "equirectangularMap");
+    gl.uniform1i(equiRectUniform, 0);
+    
+    var image = new HDRImage();    
+    var hdrTexture = gl.createTexture();
+
+    image.onload=function() {
+        gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
+        // set the texture wrapping/filtering options (on the currently bound texture object)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        // load and generate the texture
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image.dataFloat)
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        console.log("loaded texture sucessfully");
+        renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image);
+    };
+    
+    image.onerror=function() { // when .png failed
+        console.log("Couldn't load " + texturePath);   
+    };
+    
+    image.src = "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr";
+
+    
+    // Test pour mapper des textures directement sur les faces de la cubemap
+    /*var image = new Image();    
+    var hdrTexture = gl.createTexture();
+
+    image.onload=function() {
+        gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
+        // set the texture wrapping/filtering options (on the currently bound texture object)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        // load and generate the texture
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, image.width, image.height, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        console.log("loaded texture sucessfully");
+        renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image);
+    };
+    
+    image.onerror=function() { // when .png failed
+        console.log("Couldn't load " + texturePath);   
+    };
+    
+    image.src = "textures/floor/tiles_BC.png";*/
+}
+
+function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
+
+    envCubemap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubemap);
+
+    for (var i = 0; i < 6; ++i)
+    {
+        // This is probably poorly done, could be optimized
+        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, 512, 512, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image);
+        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, 512, 512, 0, gl.RGB, gl.HALF_FLOAT, null);
+    }
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    var captureProjection = makePerspective(90.0, 1.0, 0.1, 1.0);
+    var projUniform = gl.getUniformLocation(generateSkyboxProgram, "uPMatrix");
+    gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
+
+    var captureDirections = [ 
+       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
+       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([-1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
+       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  1.0,  0.0]), $V([0.0,  0.0,  1.0])),
+       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0, -1.0,  0.0]), $V([0.0,  0.0, -1.0])),
+       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0,  1.0]), $V([0.0, -1.0,  0.0])),
+       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0, -1.0]), $V([0.0, -1.0,  0.0]))
+    ];
+
+
+    // Need to dl default texture first or loading wont go through.
+    mesh = new Mesh();
+    mesh.makeCube(1.0);    
+
+     // Vertex Buffer
+    var cubeVerticesBuffer = gl.createBuffer(); 
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
+    var positions = new Float32Array(flattenObject(mesh.m_positions));
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Index buffer
+    var cubeVerticesIndexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesIndexBuffer);
+    var triangles = new Uint16Array(flattenObject(mesh.m_triangles));
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triangles, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+    // Create buffer location attributes
+    var vertexPositionAttribute = 0;
+    // Fill VAO with the right calls
+    var vertexArray = gl.createVertexArray();
+    gl.bindVertexArray(vertexArray);
+    // Send vertices
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
+    gl.enableVertexAttribArray(vertexPositionAttribute);
+    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesIndexBuffer);
+    gl.bindVertexArray(null);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
+
+    gl.viewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
+    
+    gl.clearColor(1.0,0.0,0.0,1.0);
+    var viewUniform = gl.getUniformLocation(generateSkyboxProgram, "view");
+    gl.disable(gl.CULL_FACE);
+    for (var i = 0; i < 6; ++i)
+    {
+        gl.uniformMatrix4fv(viewUniform, false, new Float32Array(flattenObject(captureDirections[i])));
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
+                               gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // Bind VAO
+        gl.bindVertexArray(vertexArray);
+        // Draw triangles
+        gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
+        // UNBIND VAO
+        gl.bindVertexArray(null);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.enable(gl.CULL_FACE);
+
+    gl.clearColor(0.0, 0.0, 1.0, 0.1);
+    startNext();
 }
 
 function initShadowMapFrameBuffer(){

@@ -53,6 +53,10 @@ var cubeSize = 0.2;
 
 var iblUniform;
 var envCubemap;
+var skyboxProgram;
+var skyboxViewUniform;
+var skyboxProjUniform;
+var vertexArray;
 
 function start() {
     canvas = document.getElementById('glCanvas');
@@ -86,13 +90,7 @@ function start() {
     // Clear the color as well as the depth buffer.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-
-    // Test IBL
-    initSkyBox();
-}
-
-function startNext(){
-     // Initiate shaders
+    // Initiate shaders
     initShaders();
 
     iblUniform =  gl.getUniformLocation(shaderProgram, "isIBL");
@@ -106,6 +104,14 @@ function startNext(){
 
     // Fill the uniform buffers
     initUBOs();
+
+    // Test IBL
+    initSkyBox();
+}
+
+function startNext(){
+
+    gl.useProgram(shaderProgram);  
 
     // Create VAOs and data buffers
     for(var i=0; i<entities.length; i++){
@@ -137,17 +143,6 @@ function startNext(){
     initShadowMapFrameBuffer();
 
     console.log("Main initialization done");
-
-    /*skybox_vertex_shader = skybox_vertex_shader.replace(/^\s+|\s+$/g, '');
-    skybox_fragment_shader = skybox_fragment_shader.replace(/^\s+|\s+$/g, '');
-    skyboxProgram = createProgram(gl, skybox_vertex_shader, skybox_fragment_shader);
-    gl.uniform1i(gl.getUniformLocation(skyboxProgram, 'environmentMap'), 0);
-
-    // If creating the shader program failed, alert
-    if (!gl.getProgramParameter(skyboxProgram, gl.LINK_STATUS)) {
-        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(skyboxProgram));
-    }*/
-
 
     // The scene will be drawn only if the default texture is loaded
     drawSceneIfReady();
@@ -300,11 +295,11 @@ function loadObjects(){
     mesh = new Mesh(material);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Background", Matrix.I(4)));
-    /*entities[entities.length-1].pos = [1.5,1.5,-3];
+    entities[entities.length-1].pos = [1.5,1.5,-3];
     entities[entities.length-1].rot = [0,90];
-    entities[entities.length-1].scale = 1.5;*/
-    entities[entities.length-1].rot = [0,90];
-    entities[entities.length-1].scale = 5.0;
+    entities[entities.length-1].scale = 1.5;
+    /*entities[entities.length-1].rot = [0,90];
+    entities[entities.length-1].scale = 5.0;*/
 
     // Test cube
     /*material = new MeshMaterial();
@@ -506,7 +501,7 @@ function initSkyBox(){
     var equiRectUniform = gl.getUniformLocation(generateSkyboxProgram, "equirectangularMap");
     gl.uniform1i(equiRectUniform, 0);
     
-    var image = new HDRImage();    
+    /*var image = new HDRImage();    
     var hdrTexture = gl.createTexture();
 
     image.onload=function() {
@@ -527,11 +522,11 @@ function initSkyBox(){
         console.log("Couldn't load " + texturePath);   
     };
     
-    image.src = "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr";
+    image.src = "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr";*/
 
     
     // Test pour mapper des textures directement sur les faces de la cubemap
-    /*var image = new Image();    
+    var image = new Image();    
     var hdrTexture = gl.createTexture();
 
     image.onload=function() {
@@ -553,7 +548,7 @@ function initSkyBox(){
         console.log("Couldn't load " + texturePath);   
     };
     
-    image.src = "textures/floor/tiles_BC.png";*/
+    image.src = "textures/floor/tiles_BC.png";
 }
 
 function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
@@ -565,8 +560,8 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
     {
         // This is probably poorly done, could be optimized
         //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, 512, 512, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
-        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image);
+        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, 512, 512, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image);
         //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, 512, 512, 0, gl.RGB, gl.HALF_FLOAT, null);
     }
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -610,7 +605,7 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
     // Create buffer location attributes
     var vertexPositionAttribute = 0;
     // Fill VAO with the right calls
-    var vertexArray = gl.createVertexArray();
+    vertexArray = gl.createVertexArray();
     gl.bindVertexArray(vertexArray);
     // Send vertices
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
@@ -627,7 +622,7 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
     
     gl.clearColor(1.0,0.0,0.0,1.0);
     var viewUniform = gl.getUniformLocation(generateSkyboxProgram, "view");
-    gl.disable(gl.CULL_FACE);
+    /*gl.disable(gl.CULL_FACE);
     for (var i = 0; i < 6; ++i)
     {
         gl.uniformMatrix4fv(viewUniform, false, new Float32Array(flattenObject(captureDirections[i])));
@@ -643,9 +638,27 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
         gl.bindVertexArray(null);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.CULL_FACE);*/
 
     gl.clearColor(0.0, 0.0, 1.0, 0.1);
+
+    // Start skybox shader
+    skybox_vertex_shader = skybox_vertex_shader.replace(/^\s+|\s+$/g, '');
+    skybox_fragment_shader = skybox_fragment_shader.replace(/^\s+|\s+$/g, '');
+    skyboxProgram = createProgram(gl, skybox_vertex_shader, skybox_fragment_shader);
+
+    // If creating the shader program failed, alert
+    if (!gl.getProgramParameter(skyboxProgram, gl.LINK_STATUS)) {
+        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(skyboxProgram));
+    }
+
+    gl.useProgram(skyboxProgram);  
+
+    skyboxProjUniform = gl.getUniformLocation(skyboxProgram, 'projection');
+    gl.uniformMatrix4fv(skyboxProjUniform, false, new Float32Array(flattenObject(pMatrix)));
+    gl.uniform1i(gl.getUniformLocation(skyboxProgram, 'environmentMap'), 0);
+    skyboxViewUniform = gl.getUniformLocation(skyboxProgram, 'view');
+
     startNext();
 }
 

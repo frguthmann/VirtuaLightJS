@@ -116,11 +116,14 @@ void main(void) {
     vec3 vNorm = normalize(vNormal);
     vec3 excidentVector = normalize(-p);
 
-    testIBL(3);
-    return;
+    /*testIBL(3);
+    return;*/
     
     if(isIBL == 1){
 
+        testIBL(0);
+        return;
+        
         /*vec3 envColor = texture(environmentMap, p).rgb;
         envColor = envColor / (envColor + vec3(1.0));
         envColor = pow(envColor, vec3(1.0/2.2)); 

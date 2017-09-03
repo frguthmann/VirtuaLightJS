@@ -1,5 +1,5 @@
 class Camera {
-    constructor(fovAngle = 53.0, nearPlane = 0.01, farPlane = 50.0, camTheta = 3*Math.PI/8.0, camPhi = 0.0,
+    constructor(fovAngle = 53.0, nearPlane = 1.0, farPlane = 50.0, camTheta = 3*Math.PI/8.0, camPhi = 0.0,
                 camDist2Target = 6.0, camTargetX = 0.0, camTargetY = 0.0, camTargetZ = 0.0) {
         this.fovAngle = fovAngle;
         this.nearPlane = nearPlane;

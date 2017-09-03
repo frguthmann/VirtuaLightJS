@@ -51,12 +51,12 @@ var max_lights = 5;
 // Size of the cube representing the light when rendering
 var cubeSize = 0.2;
 
-var iblUniform;
 var envCubemap;
 var skyboxProgram;
 var skyboxViewUniform;
 var skyboxProjUniform;
 var vertexArray;
+var skyboxFaceSize = 512;
 
 function start() {
     canvas = document.getElementById('glCanvas');
@@ -92,9 +92,6 @@ function start() {
 
     // Initiate shaders
     initShaders();
-
-    iblUniform =  gl.getUniformLocation(shaderProgram, "isIBL");
-    gl.uniform1i(iblUniform, 0);
 
     // Set texture uniforms
     setSamplerUniforms();
@@ -303,12 +300,12 @@ function loadObjects(){
 
     // Test cube
     /*material = new MeshMaterial();
-    material.assignTexture("albedo", "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr", true);*/
+    material.assignTexture("albedo", "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr", true);
     mesh = new Mesh(material);
     mesh.makeCube(0.2);
     mesh.computeCubeUV();
     entities.push(new Entity(mesh, "Cube", Matrix.I(4)));
-    entities[entities.length-1].pos = [0,1.5,0];
+    entities[entities.length-1].pos = [0,1.5,0];*/
 }
 
 function initUBOs(){
@@ -484,7 +481,7 @@ function initSkyBox(){
     gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
     gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
 
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, 512, 512);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, skyboxFaceSize, skyboxFaceSize);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);  
 
     generate_skybox_vertex_shader = generate_skybox_vertex_shader.replace(/^\s+|\s+$/g, '');
@@ -501,11 +498,12 @@ function initSkyBox(){
     var equiRectUniform = gl.getUniformLocation(generateSkyboxProgram, "equirectangularMap");
     gl.uniform1i(equiRectUniform, 0);
     
-    /*var image = new HDRImage();    
+    var image = new HDRImage();    
     var hdrTexture = gl.createTexture();
 
     image.onload=function() {
         gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         // set the texture wrapping/filtering options (on the currently bound texture object)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -522,11 +520,11 @@ function initSkyBox(){
         console.log("Couldn't load " + texturePath);   
     };
     
-    image.src = "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr";*/
+    image.src = "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr";
 
     
     // Test pour mapper des textures directement sur les faces de la cubemap
-    var image = new Image();    
+    /*var image = new Image();    
     var hdrTexture = gl.createTexture();
 
     image.onload=function() {
@@ -548,39 +546,40 @@ function initSkyBox(){
         console.log("Couldn't load " + texturePath);   
     };
     
-    image.src = "textures/floor/tiles_BC.png";
+    image.src = "textures/floor/tiles_BC.png";*/
 }
 
 function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
 
     envCubemap = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubemap);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
     for (var i = 0; i < 6; ++i)
     {
         // This is probably poorly done, could be optimized
-        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, 512, 512, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
-        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image);
-        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, 512, 512, 0, gl.RGB, gl.HALF_FLOAT, null);
+        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, skyboxFaceSize, skyboxFaceSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, skyboxFaceSize, skyboxFaceSize, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image);
+        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, skyboxFaceSize, skyboxFaceSize, 0, gl.RGB, gl.HALF_FLOAT, null);
     }
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    var captureProjection = makePerspective(90.0, 1.0, 0.1, 1.0);
+    var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0);
     var projUniform = gl.getUniformLocation(generateSkyboxProgram, "uPMatrix");
     gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
 
     var captureDirections = [ 
-       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
-       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([-1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
-       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  1.0,  0.0]), $V([0.0,  0.0,  1.0])),
-       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0, -1.0,  0.0]), $V([0.0,  0.0, -1.0])),
-       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0,  1.0]), $V([0.0, -1.0,  0.0])),
-       makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0, -1.0]), $V([0.0, -1.0,  0.0]))
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([-1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0, -1.0,  0.0]), $V([0.0,  0.0, -1.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  1.0,  0.0]), $V([0.0,  0.0,  1.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0,  1.0]), $V([0.0, -1.0,  0.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0, -1.0]), $V([0.0, -1.0,  0.0]))
     ];
 
 
@@ -617,12 +616,12 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
 
-    gl.viewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
+    gl.viewport(0, 0, skyboxFaceSize, skyboxFaceSize); // don't forget to configure the viewport to the capture dimensions.
     gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
     
     gl.clearColor(1.0,0.0,0.0,1.0);
     var viewUniform = gl.getUniformLocation(generateSkyboxProgram, "view");
-    /*gl.disable(gl.CULL_FACE);
+    gl.disable(gl.CULL_FACE);
     for (var i = 0; i < 6; ++i)
     {
         gl.uniformMatrix4fv(viewUniform, false, new Float32Array(flattenObject(captureDirections[i])));
@@ -638,7 +637,7 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
         gl.bindVertexArray(null);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.enable(gl.CULL_FACE);*/
+    gl.enable(gl.CULL_FACE);
 
     gl.clearColor(0.0, 0.0, 1.0, 0.1);
 

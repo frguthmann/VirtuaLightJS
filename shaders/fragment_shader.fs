@@ -35,7 +35,6 @@ uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 uniform sampler2D fresnelMap;
 uniform samplerCube environmentMap;
-uniform int isIBL;
 
 in highp vec4 v_view ;
 in highp vec3 vNormal;
@@ -102,8 +101,8 @@ void testIBL(int face){
     }
 
     vec3 envColor = texture(environmentMap, uvw).rgb;
-    /*envColor = envColor / (envColor + vec3(1.0));
-    envColor = pow(envColor, vec3(1.0/2.2)); */
+    envColor = envColor / (envColor + vec3(1.0));
+    envColor = pow(envColor, vec3(1.0/2.2));
     color = vec4(envColor, 1.0);
 }
 
@@ -119,24 +118,6 @@ void main(void) {
     /*testIBL(3);
     return;*/
     
-    if(isIBL == 1){
-
-        testIBL(0);
-        return;
-        
-        /*vec3 envColor = texture(environmentMap, p).rgb;
-        envColor = envColor / (envColor + vec3(1.0));
-        envColor = pow(envColor, vec3(1.0/2.2)); 
-        color = vec4(envColor, 1.0);
-        return;*/
-        
-        /*vec2 uv = SampleSphericalMap(normalize(p)); // make sure to normalize localPos
-        vec3 tempColor = texture(albedoMap, uv).rgb;
-        color = vec4(tempColor, 1.0);
-        return;*/
-    }
-
-
     int nbLights = int(u_perPass.nbLights);
 
     vec3 albedo = pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2));

@@ -105,9 +105,6 @@ function drawAllObjects(){
     // Render all entities with specific VAO / VBO / UBO 
     for(var i=0; i<vaos.length; i++){
         
-        if(i == vaos.length-3){
-            gl.uniform1i(iblUniform, 1);
-        }
         // The mvMatrix will be changed for each object, we need to store the original state
         mvPushMatrix();
 
@@ -131,10 +128,6 @@ function drawAllObjects(){
         gl.drawElements(scene.mode, entities[i].mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
         // UNBIND VAO
         gl.bindVertexArray(null);
-
-        if(i == vaos.length-3){
-            gl.uniform1i(iblUniform, 0);
-        }
 
         mvPopMatrix();
     }

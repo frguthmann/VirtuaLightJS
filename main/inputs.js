@@ -63,6 +63,7 @@ function mouseUp(e) {
 function mouseWheelHandler(e) {
     var delta = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
     camera.zoom(-delta);
+    skybox.proj = makePerspective(camera.fovAngle, canvas.clientWidth / canvas.clientHeight , 1.0, camera.farPlane);
 }
 
 function keyboardHandler(e) {

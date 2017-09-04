@@ -20,7 +20,7 @@ var drawUniformDepthLocation;
 // Main canvas we're drawing in
 var canvas;
 // Camera
-var camera = new Camera();
+var camera;
 
 // Projection matrix
 var pMatrix;
@@ -52,16 +52,19 @@ var max_lights = 5;
 var cubeSize = 0.2;
 
 var skybox = {
+    mesh : 0,
     envCubemap   : 0,
     program      : 0,
     viewUniform  : 0,
     projUniform  : 0,
+    proj         : 0,
     vao          : 0,
     res          : 512
 }
 
 function start() {
     canvas = document.getElementById('glCanvas');
+    camera = new Camera();
     
     // Initialize the GL context
     gl = canvas.getContext('webgl2', 
@@ -107,7 +110,7 @@ function start() {
 
     // Fill the uniform buffers
     initUBOs();
-  
+
 
     // Create VAOs and data buffers
     for(var i=0; i<entities.length; i++){
@@ -240,7 +243,7 @@ function loadObjects(){
         "models/mask/mask_R.jpg",
         "models/mask/mask_AO.jpg",
         "models/mask/mask_M.jpg");
-    mesh = new Mesh(material);
+    var mesh = new Mesh(material);
     mesh.loadPly(maskjs);
     entities.push(new Entity(mesh, "Mask", Matrix.I(4)));
     entities[entities.length-1].pos = [-1.3,1,0];
@@ -490,13 +493,13 @@ function createSkybox(hdrTexture){
     gl.uniform1i(equiRectUniform, 0);
 
     // Skybox geometry
-    mesh = new Mesh();
-    mesh.makeCube(1.0, false);    
+    skybox.mesh = new Mesh();
+    skybox.mesh.makeCube(1.0, false);    
 
     // Buffers and VAO
     var cubeVerticesBuffer = gl.createBuffer(); 
     var cubeVerticesIndexBuffer = gl.createBuffer();
-    initBuffers(mesh, cubeVerticesBuffer,cubeVerticesIndexBuffer);
+    initBuffers(skybox.mesh, cubeVerticesBuffer,cubeVerticesIndexBuffer);
     skybox.vao = initVAO(cubeVerticesBuffer, cubeVerticesIndexBuffer, false);
 
     // Configure context for cube rendering
@@ -523,7 +526,7 @@ function createSkybox(hdrTexture){
                                gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, skybox.envCubemap, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.bindVertexArray(skybox.vao);
-        gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, skybox.mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
         gl.bindVertexArray(null);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -540,7 +543,8 @@ function initSkyboxShader(){
     skybox.program = initShaders(skybox_vertex_shader, skybox_fragment_shader, skybox.program);
     gl.useProgram(skybox.program);  
     skybox.projUniform = gl.getUniformLocation(skybox.program, 'projection');
-    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(pMatrix)));
+    skybox.proj = makePerspective(camera.fovAngle, canvas.clientWidth / canvas.clientHeight , 1.0, camera.farPlane);
+    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
     gl.uniform1i(gl.getUniformLocation(skybox.program, 'environmentMap'), 0);
     skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
 }

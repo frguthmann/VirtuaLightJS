@@ -1,7 +1,5 @@
 var scene = {mode : 4, mvMatrixStack : []};
 var depthVP;
-var ortho = 10.0;
-var proj = makeOrtho(-ortho, ortho, -ortho, ortho, camera.nearPlane, camera.farPlane);
 
 function drawScene() {
     stats.begin();
@@ -32,7 +30,7 @@ function computeDepthMap(){
     gl.cullFace(gl.FRONT);
     // Generate light view-projection matrix
     var lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    depthVP = proj.multiply(lightSpaceMatrix);
+    depthVP = camera.orthoProj.multiply(lightSpaceMatrix);
     // Update viewport to match texture size
     gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
     
@@ -68,7 +66,7 @@ function drawSkybox(){
         gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
 
         gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix)));   //Matrix.Diagonal([0.01,0.01,1,1]).x(Matrix.I(4))
-        gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(pMatrix)));
+        gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
 
         // Bind VAO
         gl.bindVertexArray(skybox.vao);

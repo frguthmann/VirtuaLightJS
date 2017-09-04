@@ -268,11 +268,11 @@ function loadObjects(){
 
     // BACKGROUND PLAN
     material = new MeshMaterial(
-        "https://i.imgur.com/qPOUguh.jpg",
-        "https://i.imgur.com/I3lF25C.png",
-        "https://i.imgur.com/VjIW7ts.png",
-        "https://i.imgur.com/lGvZI69.png",
-        "https://i.imgur.com/ETqvLmS.png");
+        "ball_BC",
+        "ball_N",
+        "ball_R",
+        "ball_AO");
+        "ball_M",
     mesh = new Mesh(material);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Background", Matrix.I(4)));

@@ -1,4 +1,4 @@
-var scene = {mode : 4, mvMatrixStack : []};
+var scene = {mode : 4};
 var depthVP;
 
 function drawScene() {
@@ -107,10 +107,6 @@ function drawAllObjectsDepth(){
 function drawAllObjects(){
     // Render all entities with specific VAO / VBO / UBO 
     for(var i=0; i<vaos.length; i++){
-        
-        // The mvMatrix will be changed for each object, we need to store the original state
-        mvPushMatrix();
-
         // Handle automatic rotation
         if(entities[i].isRotating == true){
             rotateEntity(i); 
@@ -131,8 +127,6 @@ function drawAllObjects(){
         gl.drawElements(scene.mode, entities[i].mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
         // UNBIND VAO
         gl.bindVertexArray(null);
-
-        mvPopMatrix();
     }
 }
 
@@ -155,11 +149,10 @@ function rotateEntity(i){
 
 function updateMatrixUniformBuffer(i) {
     //console.log(mvMatrix,entities[i].mvMatrix);
-    mvMatrix = mvMatrix.multiply(entities[i].mvMatrix);
     nMatrix = mvMatrix.inverse();
     nMatrix = nMatrix.transpose();
     var depthMVP = depthVP.multiply(entities[i].mvMatrix);
-    transforms = new Float32Array(((mvMatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(depthMVP.flatten()));
+    transforms = new Float32Array(((mvMatrix.multiply(entities[i].mvMatrix).flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(depthMVP.flatten()));
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);

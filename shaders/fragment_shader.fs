@@ -248,7 +248,9 @@ vec4 getLightColor(LightSource l, vec3 p){
     if(distance(p,l.position) >= MAX_DIST*0.8 ){
         return vec4(0.0,0.0,0.0,1.0);
     }else{
-        return vec4(l.color, 1.0);
+        // Gamma correction to properly display light intensity influence lmao
+        float fact = pow(l.intensity / 150.0, 1.0/2.2);
+        return vec4(l.color * fact, 1.0);
     }
 }
 

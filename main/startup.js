@@ -99,7 +99,7 @@ function start() {
     loadSkyboxTexture("ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr");
 
     // Initiate shaders
-    shaderProgram = initShaders(vertex_shader, fragment_shader, shaderProgram);
+    shaderProgram = initShaders(vertex_shader, fragment_shader);
     gl.useProgram(shaderProgram);
 
     // Set texture uniforms
@@ -145,15 +145,10 @@ function start() {
     drawSceneIfReady();
 }
 
-function startNext(){
-
-    
-}
-
-function initShaders(vs, fs, prog) {
+function initShaders(vs, fs) {
     vs = vs.replace(/^\s+|\s+$/g, '');
     fs = fs.replace(/^\s+|\s+$/g, '');
-    prog = createProgram(gl, vs, fs);
+    var prog = createProgram(gl, vs, fs);
 
     // If creating the shader program failed, alert
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
@@ -458,9 +453,47 @@ function loadSkyboxTexture(src){
 
 function createSkybox(hdrTexture){
 
-    var generateSkyboxProgram = initShaders(generate_skybox_vertex_shader, generate_skybox_fragment_shader, generateSkyboxProgram);
-    gl.useProgram(generateSkyboxProgram);  
+    // Skybox geometry
+    skybox.mesh = new Mesh();
+    skybox.mesh.makeCube(1.0, false); 
 
+    // Associated buffers and VAO
+    var cubeVerticesBuffer = gl.createBuffer(); 
+    var cubeVerticesIndexBuffer = gl.createBuffer();
+    initBuffers(skybox.mesh, cubeVerticesBuffer,cubeVerticesIndexBuffer);
+    skybox.vao = initVAO(cubeVerticesBuffer, cubeVerticesIndexBuffer, false);
+
+    // Computing the cubeMap textures
+    var generateSkyboxProgram = initShaders(generate_skybox_vertex_shader, generate_skybox_fragment_shader);
+    gl.useProgram(generateSkyboxProgram);  
+    renderToCubeMap(generateSkyboxProgram, skybox, hdrTexture, gl.TEXTURE_2D);
+
+    computeIrradianceMap();
+}
+
+function computeIrradianceMap(){
+
+    var generateIrradianceMapProgram = initShaders(generate_skybox_vertex_shader, generate_irradiance_map_fragment_shader);
+    gl.useProgram(generateIrradianceMapProgram);
+    skybox.res = 32;   
+    renderToCubeMap(generateIrradianceMapProgram, skybox, skybox.envCubemap, gl.TEXTURE_CUBE_MAP);
+
+    // Initialization for the shader that actually renders the skybox
+    initSkyboxShader();
+}
+
+function initSkyboxShader(){
+    // Start skybox shader
+    skybox.program = initShaders(skybox_vertex_shader, skybox_fragment_shader);
+    gl.useProgram(skybox.program);  
+    skybox.projUniform = gl.getUniformLocation(skybox.program, 'projection');
+    skybox.proj = makePerspective(camera.fovAngle, canvas.clientWidth / canvas.clientHeight , 1.0, camera.farPlane);
+    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
+    gl.uniform1i(gl.getUniformLocation(skybox.program, 'environmentMap'), 0);
+    skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
+}
+
+function renderToCubeMap(prog, skybox, src, srcType){
     // Just frame buffer things
     var captureFBO = gl.createFramebuffer();
     var captureRBO = gl.createRenderbuffer();
@@ -485,26 +518,16 @@ function createSkybox(hdrTexture){
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     // Set uniforms
-    var projUniform = gl.getUniformLocation(generateSkyboxProgram, "uPMatrix");
-    var equiRectUniform = gl.getUniformLocation(generateSkyboxProgram, "equirectangularMap");
-    var viewUniform = gl.getUniformLocation(generateSkyboxProgram, "view");
+    var projUniform = gl.getUniformLocation(prog, "uPMatrix");
+    var environmentMapUniform = gl.getUniformLocation(prog, "environmentMap");
+    var viewUniform = gl.getUniformLocation(prog, "view");
     var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0); 
     gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
-    gl.uniform1i(equiRectUniform, 0);
-
-    // Skybox geometry
-    skybox.mesh = new Mesh();
-    skybox.mesh.makeCube(1.0, false);    
-
-    // Buffers and VAO
-    var cubeVerticesBuffer = gl.createBuffer(); 
-    var cubeVerticesIndexBuffer = gl.createBuffer();
-    initBuffers(skybox.mesh, cubeVerticesBuffer,cubeVerticesIndexBuffer);
-    skybox.vao = initVAO(cubeVerticesBuffer, cubeVerticesIndexBuffer, false);
+    gl.uniform1i(environmentMapUniform, 0);   
 
     // Configure context for cube rendering
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
+    gl.bindTexture(srcType, src);
     gl.viewport(0, 0, skybox.res, skybox.res); // don't forget to configure the viewport to the capture dimensions.
     gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
     gl.disable(gl.CULL_FACE);
@@ -531,27 +554,11 @@ function createSkybox(hdrTexture){
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.enable(gl.CULL_FACE);
-
-    // Initialization for the shader that actually renders the skybox
-    initSkyboxShader();
-
-    startNext();
-}
-
-function initSkyboxShader(){
-    // Start skybox shader
-    skybox.program = initShaders(skybox_vertex_shader, skybox_fragment_shader, skybox.program);
-    gl.useProgram(skybox.program);  
-    skybox.projUniform = gl.getUniformLocation(skybox.program, 'projection');
-    skybox.proj = makePerspective(camera.fovAngle, canvas.clientWidth / canvas.clientHeight , 1.0, camera.farPlane);
-    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
-    gl.uniform1i(gl.getUniformLocation(skybox.program, 'environmentMap'), 0);
-    skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
 }
 
 function initShadowMapFrameBuffer(){
     // Init depth shaders for shadow maps
-    depthProgram = initShaders(depth_vertex_shader, depth_fragment_shader, depthProgram);
+    depthProgram = initShaders(depth_vertex_shader, depth_fragment_shader);
 
     // Generate depth texture
     depthMap = gl.createTexture();

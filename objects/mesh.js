@@ -232,7 +232,7 @@ class Mesh {
         this.m_triangles.push($V([7,5,6]));
     }
 
-    makeCube(cubeSize){
+    makeCube(cubeSize, hasNormals){
         
         this.m_positions = [
         $V([ cubeSize,  cubeSize, -cubeSize]),
@@ -254,16 +254,18 @@ class Mesh {
             $V([5,  1,  7]),      $V([1,  3,  7])    // left*/
         ];
 
-        this.m_normals = [
-            $V([ 1,  1, -1]),
-            $V([-1,  1, -1]),
-            $V([ 1, -1, -1]),
-            $V([ 1,  1,  1]),
-            $V([-1,  1,  1]),
-            $V([ 1, -1,  1]),
-            $V([-1, -1, -1]),
-            $V([-1, -1,  1])
-        ];
+        if(hasNormals){
+            this.m_normals = [
+                $V([ 1,  1, -1]),
+                $V([-1,  1, -1]),
+                $V([ 1, -1, -1]),
+                $V([ 1,  1,  1]),
+                $V([-1,  1,  1]),
+                $V([ 1, -1,  1]),
+                $V([-1, -1, -1]),
+                $V([-1, -1,  1])
+            ];
+        }
     }
 
     makeSphere(res){

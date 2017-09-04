@@ -51,12 +51,14 @@ var max_lights = 5;
 // Size of the cube representing the light when rendering
 var cubeSize = 0.2;
 
-var envCubemap;
-var skyboxProgram;
-var skyboxViewUniform;
-var skyboxProjUniform;
-var vertexArray;
-var skyboxFaceSize = 512;
+var skybox = {
+    envCubemap   : 0,
+    program      : 0,
+    viewUniform  : 0,
+    projUniform  : 0,
+    vao          : 0,
+    res          : 512
+}
 
 function start() {
     canvas = document.getElementById('glCanvas');
@@ -90,8 +92,12 @@ function start() {
     // Clear the color as well as the depth buffer.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    // Load Skybox texture
+    loadSkyboxTexture("ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr");
+
     // Initiate shaders
-    initShaders();
+    shaderProgram = initShaders(vertex_shader, fragment_shader, shaderProgram);
+    gl.useProgram(shaderProgram);
 
     // Set texture uniforms
     setSamplerUniforms();
@@ -101,30 +107,21 @@ function start() {
 
     // Fill the uniform buffers
     initUBOs();
-
-    // Test IBL
-    initSkyBox();
-}
-
-function startNext(){
-
-    gl.useProgram(shaderProgram);  
+  
 
     // Create VAOs and data buffers
     for(var i=0; i<entities.length; i++){
         var verticesBuffer          = gl.createBuffer();
         var verticesIndexBuffer     = gl.createBuffer();
-        var verticesNormalBuffer    = gl.createBuffer();
-        var verticesTexCoordsBuffer = gl.createBuffer();
-
-        var hasUV = (entities[i].mesh.m_UV.length > 0);
+        var verticesNormalBuffer    = entities[i].mesh.m_normals.length > 0 ? gl.createBuffer() : false;
+        var verticesTexCoordsBuffer = entities[i].mesh.m_normals.length > 0 ? gl.createBuffer() : false;
     
         // Initiate buffers
-        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV);
+        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
         // Init VAO
-        initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV);
+        vaos.push(initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, true));
         // Init DepthVAO
-        initDepthVAO(verticesBuffer, verticesIndexBuffer);
+        depthVaos.push(initVAO(verticesBuffer, verticesIndexBuffer));
     }
 
     // Debug quads
@@ -145,17 +142,22 @@ function startNext(){
     drawSceneIfReady();
 }
 
-function initShaders() {
-    vertex_shader = vertex_shader.replace(/^\s+|\s+$/g, '');
-    fragment_shader = fragment_shader.replace(/^\s+|\s+$/g, '');
-    shaderProgram = createProgram(gl, vertex_shader, fragment_shader);
+function startNext(){
+
+    
+}
+
+function initShaders(vs, fs, prog) {
+    vs = vs.replace(/^\s+|\s+$/g, '');
+    fs = fs.replace(/^\s+|\s+$/g, '');
+    prog = createProgram(gl, vs, fs);
 
     // If creating the shader program failed, alert
-    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(prog));
     }
 
-    gl.useProgram(shaderProgram);
+    return prog;
 }
 
 window.createProgram = function(gl, vertexShaderSource, fragmentShaderSource) {
@@ -297,15 +299,6 @@ function loadObjects(){
     entities[entities.length-1].scale = 1.5;
     /*entities[entities.length-1].rot = [0,90];
     entities[entities.length-1].scale = 5.0;*/
-
-    // Test cube
-    /*material = new MeshMaterial();
-    material.assignTexture("albedo", "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr", true);
-    mesh = new Mesh(material);
-    mesh.makeCube(0.2);
-    mesh.computeCubeUV();
-    entities.push(new Entity(mesh, "Cube", Matrix.I(4)));
-    entities[entities.length-1].pos = [0,1.5,0];*/
 }
 
 function initUBOs(){
@@ -331,7 +324,7 @@ function initUBOs(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV) {
+function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer) {
 
     // Vertex Buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
@@ -346,13 +339,15 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
     // Normals Buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
-    var normals = new Float32Array(flattenObject(mesh.m_normals));
-    gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    if(verticesNormalBuffer){
+        gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
+        var normals = new Float32Array(flattenObject(mesh.m_normals));
+        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    }
 
     // Texture Buffer
-    if(hasUV){
+    if(verticesTexCoordsBuffer){
         gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
         var texCoords = new Float32Array(flattenObject(mesh.m_UV));
         gl.bufferData(gl.ARRAY_BUFFER, texCoords, gl.STATIC_DRAW);
@@ -360,7 +355,7 @@ function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBu
     }
 }
 
-function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, hasUV){
+function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, bindUBO){
 
     // Create buffer location attributes
     var vertexPositionAttribute = 0;
@@ -377,12 +372,14 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 
     // Send normals
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
-    gl.enableVertexAttribArray(vertexNormalAttribute);   
-    gl.vertexAttribPointer(vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+    if(verticesNormalBuffer){
+        gl.bindBuffer(gl.ARRAY_BUFFER, verticesNormalBuffer);
+        gl.enableVertexAttribArray(vertexNormalAttribute);   
+        gl.vertexAttribPointer(vertexNormalAttribute, 3, gl.FLOAT, false, 0, 0);
+    }
 
     // Send texture coordinates
-    if(hasUV){
+    if(verticesTexCoordsBuffer){
         gl.bindBuffer(gl.ARRAY_BUFFER, verticesTexCoordsBuffer);
         gl.enableVertexAttribArray(texCoordsAttribute);   
         gl.vertexAttribPointer(texCoordsAttribute, 2, gl.FLOAT, false, 0, 0);
@@ -392,35 +389,13 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
 
     // Bind UBOs
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
+    if(bindUBO){
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, 1, uniformPerPassBuffer);
+    }
 
     gl.bindVertexArray(null);
-    vaos.push(vertexArray);
-}
-
-function initDepthVAO(verticesBuffer, verticesIndexBuffer){
-
-    // Create buffer location attributes
-    vertexPositionAttribute = 0;
-
-    // Fill VAO with the right calls
-    var vertexArray = gl.createVertexArray();
-    gl.bindVertexArray(vertexArray);
-
-    // Send vertices
-    gl.bindBuffer(gl.ARRAY_BUFFER, verticesBuffer);
-    gl.enableVertexAttribArray(vertexPositionAttribute);
-    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-    
-    // Send indexes
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, verticesIndexBuffer);
-
-    // Bind UBOs
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformPerDrawBuffer);
-
-    gl.bindVertexArray(null);
-    depthVaos.push(vertexArray);
+    return vertexArray;
 }
 
 function initQuad(){
@@ -471,97 +446,34 @@ function initQuad(){
     gl.bindVertexArray(null);
 }
 
-function initSkyBox(){
-
-    //var ext = gl.getExtension('EXT_color_buffer_half_float');
-
-    var captureFBO = gl.createFramebuffer();
-    var captureRBO = gl.createRenderbuffer();
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
-
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, skyboxFaceSize, skyboxFaceSize);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);  
-
-    generate_skybox_vertex_shader = generate_skybox_vertex_shader.replace(/^\s+|\s+$/g, '');
-    generate_skybox_fragment_shader = generate_skybox_fragment_shader.replace(/^\s+|\s+$/g, '');
-    var generateSkyboxProgram = createProgram(gl, generate_skybox_vertex_shader, generate_skybox_fragment_shader);
-
-    // If creating the shader program failed, alert
-    if (!gl.getProgramParameter(generateSkyboxProgram, gl.LINK_STATUS)) {
-        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(generateSkyboxProgram));
-    }
-
-    gl.useProgram(generateSkyboxProgram);  
-
-    var equiRectUniform = gl.getUniformLocation(generateSkyboxProgram, "equirectangularMap");
-    gl.uniform1i(equiRectUniform, 0);
-    
-    var image = new HDRImage();    
-    var hdrTexture = gl.createTexture();
-
-    image.onload=function() {
-        gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        // set the texture wrapping/filtering options (on the currently bound texture object)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        // load and generate the texture
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image.dataFloat)
-        gl.bindTexture(gl.TEXTURE_2D, null);
-        console.log("loaded texture sucessfully");
-        renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image);
-    };
-    
-    image.onerror=function() { // when .png failed
-        console.log("Couldn't load " + texturePath);   
-    };
-    
-    image.src = "ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr";
-
-    
-    // Test pour mapper des textures directement sur les faces de la cubemap
-    /*var image = new Image();    
-    var hdrTexture = gl.createTexture();
-
-    image.onload=function() {
-        gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
-        // set the texture wrapping/filtering options (on the currently bound texture object)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        // load and generate the texture
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, image.width, image.height, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.bindTexture(gl.TEXTURE_2D, null);
-        console.log("loaded texture sucessfully");
-        renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image);
-    };
-    
-    image.onerror=function() { // when .png failed
-        console.log("Couldn't load " + texturePath);   
-    };
-    
-    image.src = "textures/floor/tiles_BC.png";*/
+function loadSkyboxTexture(src){
+    var skyboxTexture;
+    skyboxTexture = new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(){
+        createSkybox(skyboxTexture);
+    });
 }
 
-function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
+function createSkybox(hdrTexture){
 
-    envCubemap = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubemap);
+    var generateSkyboxProgram = initShaders(generate_skybox_vertex_shader, generate_skybox_fragment_shader, generateSkyboxProgram);
+    gl.useProgram(generateSkyboxProgram);  
+
+    // Just frame buffer things
+    var captureFBO = gl.createFramebuffer();
+    var captureRBO = gl.createRenderbuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, skybox.res, skybox.res);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);  
+
+    // Setup cubemap texture parameters
+    skybox.envCubemap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-
     for (var i = 0; i < 6; ++i)
     {
         // This is probably poorly done, could be optimized
-        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGBA, skyboxFaceSize, skyboxFaceSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, skyboxFaceSize, skyboxFaceSize, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
-        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image);
-        //gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB16F, skyboxFaceSize, skyboxFaceSize, 0, gl.RGB, gl.HALF_FLOAT, null);
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, skybox.res, skybox.res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
     }
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -569,9 +481,30 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0);
+    // Set uniforms
     var projUniform = gl.getUniformLocation(generateSkyboxProgram, "uPMatrix");
+    var equiRectUniform = gl.getUniformLocation(generateSkyboxProgram, "equirectangularMap");
+    var viewUniform = gl.getUniformLocation(generateSkyboxProgram, "view");
+    var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0); 
     gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
+    gl.uniform1i(equiRectUniform, 0);
+
+    // Skybox geometry
+    mesh = new Mesh();
+    mesh.makeCube(1.0, false);    
+
+    // Buffers and VAO
+    var cubeVerticesBuffer = gl.createBuffer(); 
+    var cubeVerticesIndexBuffer = gl.createBuffer();
+    initBuffers(mesh, cubeVerticesBuffer,cubeVerticesIndexBuffer);
+    skybox.vao = initVAO(cubeVerticesBuffer, cubeVerticesIndexBuffer, false);
+
+    // Configure context for cube rendering
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
+    gl.viewport(0, 0, skybox.res, skybox.res); // don't forget to configure the viewport to the capture dimensions.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
+    gl.disable(gl.CULL_FACE);
 
     var captureDirections = [ 
         makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
@@ -582,95 +515,39 @@ function renderSkybox(hdrTexture, captureFBO, generateSkyboxProgram, image){
         makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0, -1.0]), $V([0.0, -1.0,  0.0]))
     ];
 
-
-    // Need to dl default texture first or loading wont go through.
-    mesh = new Mesh();
-    mesh.makeCube(1.0);    
-
-     // Vertex Buffer
-    var cubeVerticesBuffer = gl.createBuffer(); 
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
-    var positions = new Float32Array(flattenObject(mesh.m_positions));
-    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    // Index buffer
-    var cubeVerticesIndexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesIndexBuffer);
-    var triangles = new Uint16Array(flattenObject(mesh.m_triangles));
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, triangles, gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-
-    // Create buffer location attributes
-    var vertexPositionAttribute = 0;
-    // Fill VAO with the right calls
-    vertexArray = gl.createVertexArray();
-    gl.bindVertexArray(vertexArray);
-    // Send vertices
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
-    gl.enableVertexAttribArray(vertexPositionAttribute);
-    gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesIndexBuffer);
-    gl.bindVertexArray(null);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
-
-    gl.viewport(0, 0, skyboxFaceSize, skyboxFaceSize); // don't forget to configure the viewport to the capture dimensions.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
-    
-    gl.clearColor(1.0,0.0,0.0,1.0);
-    var viewUniform = gl.getUniformLocation(generateSkyboxProgram, "view");
-    gl.disable(gl.CULL_FACE);
+    // Actual render on each face
     for (var i = 0; i < 6; ++i)
     {
         gl.uniformMatrix4fv(viewUniform, false, new Float32Array(flattenObject(captureDirections[i])));
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
-                               gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+                               gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, skybox.envCubemap, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        // Bind VAO
-        gl.bindVertexArray(vertexArray);
-        // Draw triangles
+        gl.bindVertexArray(skybox.vao);
         gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
-        // UNBIND VAO
         gl.bindVertexArray(null);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.enable(gl.CULL_FACE);
 
-    gl.clearColor(0.0, 0.0, 1.0, 0.1);
-
-    // Start skybox shader
-    skybox_vertex_shader = skybox_vertex_shader.replace(/^\s+|\s+$/g, '');
-    skybox_fragment_shader = skybox_fragment_shader.replace(/^\s+|\s+$/g, '');
-    skyboxProgram = createProgram(gl, skybox_vertex_shader, skybox_fragment_shader);
-
-    // If creating the shader program failed, alert
-    if (!gl.getProgramParameter(skyboxProgram, gl.LINK_STATUS)) {
-        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(skyboxProgram));
-    }
-
-    gl.useProgram(skyboxProgram);  
-
-    skyboxProjUniform = gl.getUniformLocation(skyboxProgram, 'projection');
-    gl.uniformMatrix4fv(skyboxProjUniform, false, new Float32Array(flattenObject(pMatrix)));
-    gl.uniform1i(gl.getUniformLocation(skyboxProgram, 'environmentMap'), 0);
-    skyboxViewUniform = gl.getUniformLocation(skyboxProgram, 'view');
+    // Initialization for the shader that actually renders the skybox
+    initSkyboxShader();
 
     startNext();
 }
 
+function initSkyboxShader(){
+    // Start skybox shader
+    skybox.program = initShaders(skybox_vertex_shader, skybox_fragment_shader, skybox.program);
+    gl.useProgram(skybox.program);  
+    skybox.projUniform = gl.getUniformLocation(skybox.program, 'projection');
+    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(pMatrix)));
+    gl.uniform1i(gl.getUniformLocation(skybox.program, 'environmentMap'), 0);
+    skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
+}
+
 function initShadowMapFrameBuffer(){
     // Init depth shaders for shadow maps
-    depth_vertex_shader = depth_vertex_shader.replace(/^\s+|\s+$/g, '');
-    depth_fragment_shader = depth_fragment_shader.replace(/^\s+|\s+$/g, '');
-    depthProgram = createProgram(gl, depth_vertex_shader, depth_fragment_shader);
-
-    // If creating the shader program failed, alert
-    if (!gl.getProgramParameter(depthProgram, gl.LINK_STATUS)) {
-        console.log('Unable to initialize the shader program: ' + gl.getProgramInfoLog(depthProgram));
-    }
+    depthProgram = initShaders(depth_vertex_shader, depth_fragment_shader, depthProgram);
 
     // Generate depth texture
     depthMap = gl.createTexture();
@@ -762,7 +639,7 @@ function getUBOPadding(data, prog, uboIdx){
 function enableLightDisplay(lightPos, i){
     
     var mesh = new Mesh();
-    mesh.makeCube(cubeSize);
+    mesh.makeCube(cubeSize, false);
     var entity = new Entity(mesh, "Light " + i, Matrix.Translation(Vector.create(lightPos)));
     entities.push(entity);
 }

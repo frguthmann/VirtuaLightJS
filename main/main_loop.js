@@ -46,7 +46,7 @@ function computeDepthMap(){
 
 function render(){
     // Get back to backface culling for normal rendering
-    gl.cullFace(gl.BACK);
+    gl.disable(gl.CULL_FACE);
     // Reload original viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -55,23 +55,28 @@ function render(){
     // Activate and use depth texture
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
-    gl.disable(gl.CULL_FACE);
     drawAllObjects();
-
-    gl.useProgram(skyboxProgram);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubemap);
-
-    gl.uniformMatrix4fv(skyboxViewUniform, false, new Float32Array(flattenObject(mvMatrix)));   //Matrix.Diagonal([0.01,0.01,1,1]).x(Matrix.I(4))
-    gl.uniformMatrix4fv(skyboxProjUniform, false, new Float32Array(flattenObject(pMatrix)));
-
-    // Bind VAO
-    gl.bindVertexArray(vertexArray);
-    // Draw triangles
-    gl.drawElements(gl.TRIANGLES, 12 * 3, gl.UNSIGNED_SHORT, 0);
-    // UNBIND VAO
-    gl.bindVertexArray(null);
+    
+    drawSkybox();
     gl.enable(gl.CULL_FACE);
+}
+
+function drawSkybox(){
+    if(skybox.program){
+        gl.useProgram(skybox.program);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
+
+        gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix)));   //Matrix.Diagonal([0.01,0.01,1,1]).x(Matrix.I(4))
+        gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(pMatrix)));
+
+        // Bind VAO
+        gl.bindVertexArray(skybox.vao);
+        // Draw triangles
+        gl.drawElements(gl.TRIANGLES, 12 * 3, gl.UNSIGNED_SHORT, 0);
+        // UNBIND VAO
+        gl.bindVertexArray(null);
+    }
 }
 
 function debugDrawOnQuad(texture){
@@ -184,8 +189,6 @@ function updateLightsUniformBuffer(){
 }
 
 function setTextures(material){
-    gl.activeTexture(gl.TEXTURE6);
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubemap);
     if(material){
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, material.albedo);

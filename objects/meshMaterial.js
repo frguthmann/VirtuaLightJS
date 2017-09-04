@@ -26,11 +26,7 @@ class MeshMaterial{
         let path = texturePath;
         /*  Assign only when the texture is loaded. 
             The default texture is set as place holder in the meantime.*/
-        if(!isHDR){
-            MeshMaterial.loadTexture(texturePath, false, textureLoadCallback);
-        }else{
-            MeshMaterial.loadTexture(texturePath, true, textureLoadCallback);
-        }
+        MeshMaterial.loadTexture(texturePath, isHDR, textureLoadCallback);
 
         function textureLoadCallback(texture){
             meshMat[attribute] = texture;
@@ -50,48 +46,8 @@ class MeshMaterial{
         if(!texturePath){
             return MeshMaterial.defaultTexture;
         }
-
         MeshMaterial.nbTextureToLoad++;
-        
-        var image;
-        if(!isHDR){
-            image = new Image(); 
-        }else{
-            image = new HDRImage();
-        }
-        
-        var texture = gl.createTexture();
-
-        image.onload=function() {
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            // set the texture wrapping/filtering options (on the currently bound texture object)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            // load and generate the texture
-            if(!isHDR){
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, image.width, image.height, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
-                gl.generateMipmap(gl.TEXTURE_2D);
-            }else{
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, image.width, image.height, 0, gl.RGB, gl.FLOAT, image.dataFloat)
-            }
-            gl.bindTexture(gl.TEXTURE_2D, null);
-
-            //console.log("Loaded " + texturePath + " successfully");
-
-            if(callback){
-                callback(texture);
-            }
-        };
-        
-        image.onerror=function() { // when .png failed
-            console.log("Couldn't load " + texturePath);   
-        };
-        
-        image.src = texturePath; // execute the test
-        
-        return texture;
+        return new Texture(texturePath, isHDR, gl.REPEAT, gl.NEAREST, callback);
     }
 
     static loadDefaultTexture(callback){    

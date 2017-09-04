@@ -268,11 +268,11 @@ function loadObjects(){
 
     // BACKGROUND PLAN
     material = new MeshMaterial(
-        "textures/rust/rust_BC.png",
-        "textures/rust/rust_N.png",
-        "textures/rust/rust_R.png",
-        "textures/rust/rust_AO.png",
-        "textures/rust/rust_M.png");
+        "https://i.imgur.com/qPOUguh.jpg",
+        "https://i.imgur.com/I3lF25C.png",
+        "https://i.imgur.com/VjIW7ts.png",
+        "https://i.imgur.com/lGvZI69.png",
+        "https://i.imgur.com/ETqvLmS.png");
     mesh = new Mesh(material);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Background", Matrix.I(4)));

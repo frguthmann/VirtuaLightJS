@@ -32,6 +32,8 @@ class MeshMaterial{
         var tester = new Image();
         var texture = gl.createTexture();
 
+        tester.crossOrigin = "anonymouss";
+
         tester.onload=function() {
             gl.bindTexture(gl.TEXTURE_2D, texture);
             // set the texture wrapping/filtering options (on the currently bound texture object)

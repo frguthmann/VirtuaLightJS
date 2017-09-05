@@ -10,15 +10,18 @@ function drawScene() {
         camera.shouldSetup = false;
     }
 
-    // Compute light positions relative to this camera and update UBO
-    updateLightsUniformBuffer();
-
     // Pass 1: Render depth map   
     computeDepthMap(); 
 
     // Pass 2: Render lighting
     render();
-    
+
+    // Pass 3: Render Skybox
+    if(skybox.program){
+        drawSkybox();
+    }
+
+    // Pass X: debug
     // debugDrawOnQuad();
 
     requestAnimationFrame(drawScene);
@@ -26,6 +29,7 @@ function drawScene() {
 }
 
 function computeDepthMap(){
+    gl.useProgram(depthProgram);
     // Activate front face culling to remove shadowmaps artifacts
     gl.cullFace(gl.FRONT);
     // Generate light view-projection matrix
@@ -33,51 +37,46 @@ function computeDepthMap(){
     depthVP = camera.orthoProj.multiply(lightSpaceMatrix);
     // Update viewport to match texture size
     gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);
-    
     // Render depth map to texture
     gl.bindFramebuffer(gl.FRAMEBUFFER, depthMapFBO);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-    gl.useProgram(depthProgram);    
+    gl.clear(gl.DEPTH_BUFFER_BIT);    
     drawAllObjectsDepth();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
 
 function render(){
+    gl.useProgram(shaderProgram);
+    // Update lights and camera uniforms
+    updateUniforms();
     // Get back to backface culling for normal rendering
     gl.disable(gl.CULL_FACE);
     // Reload original viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    // Use lighting program
-    gl.useProgram(shaderProgram);
-
-    gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
-
     // Activate and use depth texture
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);
     drawAllObjects();
-    
-    drawSkybox();
     gl.enable(gl.CULL_FACE);
 }
 
 function drawSkybox(){
-    if(skybox.program){
-        gl.useProgram(skybox.program);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
+    gl.useProgram(skybox.program);
+    // We're inside the cube, must remove cull face
+    gl.disable(gl.CULL_FACE);
+    // Enable environnement map
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
 
-        gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix)));   //Matrix.Diagonal([0.01,0.01,1,1]).x(Matrix.I(4))
-        gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
+    // Update uniforms
+    gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix)));
+    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
 
-        // Bind VAO
-        gl.bindVertexArray(skybox.vao);
-        // Draw triangles
-        gl.drawElements(gl.TRIANGLES, 12 * 3, gl.UNSIGNED_SHORT, 0);
-        // UNBIND VAO
-        gl.bindVertexArray(null);
-    }
+    // Bind VAO
+    gl.bindVertexArray(skybox.vao);
+    gl.drawElements(gl.TRIANGLES, skybox.mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
+    gl.bindVertexArray(null);
+    gl.enable(gl.CULL_FACE);
 }
 
 function debugDrawOnQuad(texture){
@@ -171,7 +170,7 @@ function updateMatrixUniformBufferDepth(i){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
-function updateLightsUniformBuffer(){
+function updateUniforms(){
     // Update position with the new mvMatrix
     for(var i=0; i<lights.length; i++){
         dataLights[i].position = mvMatrix.multiply(lights[i].position);
@@ -181,13 +180,10 @@ function updateLightsUniformBuffer(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(dataLights)));
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
 }
 
 function setTextures(material){
-    if(skybox.envCubemap){
-        gl.activeTexture(gl.TEXTURE6);
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
-    }
     if(material){
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, material.albedo);
@@ -220,6 +216,10 @@ function setTextures(material){
 
         gl.activeTexture(gl.TEXTURE5);
         gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
+    }
+    if(skybox.envCubemap){
+        gl.activeTexture(gl.TEXTURE6);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
     }
 }
 

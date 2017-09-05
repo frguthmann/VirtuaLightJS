@@ -210,7 +210,7 @@ class Mesh {
         // BACK FACE
         
         // Vertices
-        /*this.m_positions.push($V([-scale,-0.03,-scale]));
+        this.m_positions.push($V([-scale,-0.03,-scale]));
         this.m_positions.push($V([-scale,-0.03,scale]));
         this.m_positions.push($V([scale,-0.03,-scale]));
         this.m_positions.push($V([scale,-0.03,scale]));
@@ -229,7 +229,7 @@ class Mesh {
         
         // Index
         this.m_triangles.push($V([5,4,6]));
-        this.m_triangles.push($V([7,5,6]));*/
+        this.m_triangles.push($V([7,5,6]));
     }
 
     makeCube(cubeSize, hasNormals){

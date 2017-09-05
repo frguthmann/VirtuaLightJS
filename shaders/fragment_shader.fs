@@ -27,13 +27,12 @@ uniform PerPass
     float nbLights;
 } u_perPass;
 
-uniform sampler2DShadow shadowMap;
-
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 uniform sampler2D fresnelMap;
+uniform sampler2DShadow shadowMap;
 uniform samplerCube environmentMap;
 
 in highp vec4 v_view ;
@@ -74,6 +73,7 @@ vec2 SampleSphericalMap(vec3 v)
 }
 
 void testIBL(int face){
+
     float a,b,c,d;
     a = (gl_FragCoord.x / 640.0) - 0.5;
     b = (gl_FragCoord.y / 480.0) - 0.5;
@@ -167,6 +167,7 @@ void main(void) {
 
     // Tone mapping by reinhart operator
     //resultingColor = resultingColor / (resultingColor + vec3(1.0));
+    
     // Exposure tone mapping
     float exposure = 1.0; // => should be a uniform
     resultingColor = vec3(1.0) - exp(-resultingColor * exposure);

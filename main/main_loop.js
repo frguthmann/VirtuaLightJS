@@ -180,6 +180,10 @@ function updateLightsUniformBuffer(){
 }
 
 function setTextures(material){
+    if(skybox.envCubemap){
+        gl.activeTexture(gl.TEXTURE6);
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
+    }
     if(material){
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, material.albedo);

@@ -150,10 +150,6 @@ function rotateEntity(i){
 }
 
 function updateMatrixUniformBuffer(i) {
-    // console.log(mvMatrix,entities[i].mvMatrix);
-    // var tempMvmatrix = mvMatrix.multiply(entities[i].mvMatrix);
-    // nMatrix = tempMvmatrix.inverse();
-    // nMatrix = nMatrix.transpose();
     var depthMVP = depthVP.multiply(entities[i].mvMatrix);
     transforms = new Float32Array(((entities[i].mvMatrix.flatten().concat(mvMatrix.flatten())).concat(pMatrix.flatten())).concat(depthMVP.flatten()));
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
@@ -162,26 +158,19 @@ function updateMatrixUniformBuffer(i) {
 }
 
 function updateMatrixUniformBufferDepth(i){
-    //console.log(mvMatrix,entities[i].mvMatrix);
     var depthMVP = depthVP.multiply(entities[i].mvMatrix);
     transforms = new Float32Array(depthMVP.flatten());
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms); //, 0, transforms.length*(2.0/3.0)
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
 }
 
 function updateUniforms(){
-    // Update position with the new mvMatrix
-    for(var i=0; i<lights.length; i++){
-        /*dataLights[i].position = mvMatrix.multiply(lights[i].position);
-        dataLights[i].intensity = lights[i].intensity;*/
-        dataLights[i].position = lights[i].position;
-        dataLights[i].intensity = lights[i].intensity;
-    }
-        // Pushing the lights UBO with updated coordinates
+    // Pushing the lights UBO with updated coordinates
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerPassBuffer);
-    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(dataLights)));
+    gl.bufferSubData(gl.UNIFORM_BUFFER, 0, new Float32Array(flattenObject(lights)));
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    // Send camera position too
     gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
 }
 

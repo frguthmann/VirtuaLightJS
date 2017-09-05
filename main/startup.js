@@ -44,8 +44,6 @@ var transforms;
 var entities = [];
 // Contains the lights of the scene
 var lights = [];
-// Same as lights but with position * modelViewMatrix
-var dataLights = [];
 var max_lights = 5;
 // Size of the cube representing the light when rendering
 var cubeSize = 0.2;
@@ -609,31 +607,28 @@ function createLights(prog, uboIdx){
     // Actual lights of the scene
     lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,1]),100,1,1,1,lights.length));
     lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,0.5]),100,1,1,1,lights.length));
-    
+    var length = lights.length;
+
     // Filling dummy data for up to 5 lights because the UBO / shader expects 5 max
     for(var i=0; i<max_lights; i++){
-        if(i<lights.length){
+        if(i<length){
             // Do this if you want to see a cube at the position of the lights
             enableLightDisplay(lights[i].position.elements, i);
-            // Update position with mvMatrix and store in dataLights
-            var l = LightSource.createLightSource(lights[i]);
-            l.position = mvMatrix.multiply(lights[i].position);
-            dataLights.push(l);
         }else{
             // Dummy data
-            dataLights.push(new LightSource());
+            lights.push(new LightSource());
         }
     }
     
     // Get all the data into an array
-    var data = flattenObject(dataLights).concat(lights.length);
+    var data = flattenObject(lights).concat(length);
     // Padding is implementation dependent (Windows vs Unix)
     getUBOPadding(data, prog, uboIdx);
 
     // Forget about the dummy data, we just had to send it once to the graphic card
-    dataLights = dataLights.slice(0,lights.length);
+    lights = lights.slice(0,length);
 
-    // Send the dat in the right format
+    // Send the data in the right format
     return new Float32Array(data);
 }
 

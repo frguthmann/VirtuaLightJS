@@ -39,7 +39,7 @@ uniform samplerCube environmentMap;
 
 uniform vec3 camPos;
 
-in highp vec4 v_view ;
+in highp vec4 worldPos ;
 in highp vec3 vNormal;
 in highp vec4 vFragPosLightSpace;
 in highp vec2 vTexCoords;
@@ -47,17 +47,17 @@ in highp vec2 vTexCoords;
 out vec4 color;
 
 // Custom functions
-vec3 getIntensityFromPosition(LightSource l, vec3 p);
+vec3 getIntensityFromPosition(LightSource l, vec3 pos);
 vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr);
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
-vec4 getLightColor(LightSource l, vec3 p);
+vec4 getLightColor(LightSource l, vec3 pos);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
 vec3 getFilteredTexel(sampler2D texture, vec2 off);
 vec2 SampleSphericalMap(vec3 v);
 void testIBL(int face);
 
 // Normal Mapping Without Precomputed Tangents by Christian Schüler
-mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv);
+mat3 cotangent_frame(vec3 N, vec3 pos, vec2 uv);
 vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord);
 
 // Number rendering code below by P_Malin
@@ -74,9 +74,9 @@ void main(void) {
     vec3 specular = vec3(0.0);
     vec3 LO = vec3(0.0);
     
-    vec3 p = v_view.xyz;
+    vec3 pos = worldPos.xyz;
     vec3 vNorm = normalize(vNormal);
-    vec3 excidentVector = normalize(-p);
+    vec3 excidentVector = normalize(-pos);
 
     /*testIBL(3);
     return;*/
@@ -96,12 +96,12 @@ void main(void) {
 
     for (int i=0 ; i<nbLights; i++){
 
-        if(distance(p,u_perPass.lights[i].position) <= MAX_DIST ){
-            color = getLightColor(u_perPass.lights[i], p);
+        if(distance(pos,u_perPass.lights[i].position) <= MAX_DIST ){
+            color = getLightColor(u_perPass.lights[i], pos);
             return;
         }
 
-        vec3 incidentVector = normalize(u_perPass.lights[i].position-p);
+        vec3 incidentVector = normalize(u_perPass.lights[i].position-pos);
         float directionnalAttenuation = max(dot(n, incidentVector), 0.0);
 
         vec3 kS = fresnelSchlick(incidentVector, excidentVector, f0);
@@ -110,14 +110,14 @@ void main(void) {
 
         specular = microFacetSpecular(incidentVector,excidentVector,n,kS,roughness, 2);
 
-        vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],p);
+        vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],pos);
 
         LO += (kD * albedo / M_PI + specular) * radiance * directionnalAttenuation;
 
     }
 
     // Shadow computation
-    vec3 lightDir = normalize(u_perPass.lights[0].position-p);
+    vec3 lightDir = normalize(u_perPass.lights[0].position-pos);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
 
     vec3 ambient = vec3(0.015) * albedo * ao;
@@ -142,8 +142,8 @@ void main(void) {
 }
 
 // Light intensity attenuation
-vec3 getIntensityFromPosition(LightSource l, vec3 p){
-    float d = distance(l.position,p);
+vec3 getIntensityFromPosition(LightSource l, vec3 pos){
+    float d = distance(l.position,pos);
     float intFromDist = l.intensity / (l.aconst + l.alin*d + l.aquad*d*d);
     //float intFromDist = 1.0 / (d*d);
     return l.color * intFromDist;
@@ -208,8 +208,8 @@ vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0)
     return schlick;
 }  
 
-vec4 getLightColor(LightSource l, vec3 p){
-    if(distance(p,l.position) >= MAX_DIST*0.8 ){
+vec4 getLightColor(LightSource l, vec3 pos){
+    if(distance(pos,l.position) >= MAX_DIST*0.8 ){
         return vec4(0.0,0.0,0.0,1.0);
     }else{
         // Gamma correction to properly display light intensity influence lmao
@@ -337,11 +337,11 @@ vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
 // http://www.thetenthplanet.de/archives/1180
 //---------------------------------------------------------------
 
-mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv)
+mat3 cotangent_frame(vec3 N, vec3 pos, vec2 uv)
 {
     // get edge vectors of the pixel triangle
-    vec3 dp1 = dFdx( p );
-    vec3 dp2 = dFdy( p );
+    vec3 dp1 = dFdx( pos );
+    vec3 dp2 = dFdy( pos );
     vec2 duv1 = dFdx( uv );
     vec2 duv2 = dFdy( uv );
  

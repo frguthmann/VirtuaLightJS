@@ -35,6 +35,8 @@ uniform sampler2D fresnelMap;
 uniform sampler2DShadow shadowMap;
 uniform samplerCube environmentMap;
 
+uniform vec3 camPos;
+
 in highp vec4 v_view ;
 in highp vec3 vNormal;
 in highp vec4 vFragPosLightSpace;
@@ -114,6 +116,11 @@ void main(void) {
     vec3 p = v_view.xyz;
     vec3 vNorm = normalize(vNormal);
     vec3 excidentVector = normalize(-p);
+
+    /*if(camPos.x != 0.){
+        color = vec4(0.0, 0.1, 0.0, 1.0);
+        return;
+    }*/
 
     /*testIBL(3);
     return;*/

@@ -84,4 +84,10 @@ class Camera {
         this.camTheta+=phi;
         this.shouldSetup = true;
     }
+
+    getPos(){
+        var pos = {x:0,y:0,z:0};
+        this.polar2Cartesian(this.camTheta, this.camPhi, this.camDist2Target, pos);
+        return pos;
+    }
 }

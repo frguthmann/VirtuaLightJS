@@ -32,6 +32,7 @@ var nMatrix;
 // UBOS
 var uniformPerDrawBuffer;
 var uniformPerPassBuffer;
+var cameraUniform;
 
 // VAOs
 var vaos = [];
@@ -111,7 +112,6 @@ function start() {
 
     // Fill the uniform buffers
     initUBOs();
-
 
     // Create VAOs and data buffers
     for(var i=0; i<entities.length; i++){
@@ -321,6 +321,9 @@ function initUBOs(){
     gl.bufferData(gl.UNIFORM_BUFFER, lightData, gl.DYNAMIC_DRAW);
     
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+
+    cameraUniform = gl.getUniformLocation(shaderProgram, 'camPos');
+    gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
 }
 
 function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer) {

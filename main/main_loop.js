@@ -8,6 +8,7 @@ function drawScene() {
     if(camera.shouldSetup){
         camera.setup();
         camera.shouldSetup = false;
+        //        gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
     }
 
     // Compute light positions relative to this camera and update UBO

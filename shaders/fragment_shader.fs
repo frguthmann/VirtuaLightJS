@@ -48,7 +48,7 @@ out vec4 color;
 
 // Custom functions
 vec3 getIntensityFromPosition(LightSource l, vec3 pos);
-vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr);
+vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 normal, vec3 fresnel, float roughness, int distriNbr);
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
 vec4 getLightColor(LightSource l, vec3 pos);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
@@ -57,8 +57,8 @@ vec2 SampleSphericalMap(vec3 v);
 void testIBL(int face);
 
 // Normal Mapping Without Precomputed Tangents by Christian Schüler
-mat3 cotangent_frame(vec3 N, vec3 pos, vec2 uv);
-vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord);
+mat3 cotangent_frame(vec3 normal, vec3 pos, vec2 uv);
+vec3 perturb_normal( vec3 normal, vec3 V, vec2 texcoord);
 
 // Number rendering code below by P_Malin
 float DigitBin( const int x );
@@ -87,12 +87,11 @@ void main(void) {
     float roughness = tex2DBiLinear(roughnessMap, vTexCoords).r;
     float ao = tex2DBiLinear(aoMap, vTexCoords).r;
     float fresnel = tex2DBiLinear(fresnelMap, vTexCoords).r;
-    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );
+    vec3 normal = perturb_normal( vNorm, excidentVector, vTexCoords );
 
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 
     f0 = mix(f0, albedo, fresnel);
-
 
     for (int i=0 ; i<nbLights; i++){
 
@@ -102,13 +101,13 @@ void main(void) {
         }
 
         vec3 incidentVector = normalize(u_perPass.lights[i].position-pos);
-        float directionnalAttenuation = max(dot(n, incidentVector), 0.0);
+        float directionnalAttenuation = max(dot(normal, incidentVector), 0.0);
 
         vec3 kS = fresnelSchlick(incidentVector, excidentVector, f0);
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - fresnel;
 
-        specular = microFacetSpecular(incidentVector,excidentVector,n,kS,roughness, 2);
+        specular = microFacetSpecular(incidentVector,excidentVector,normal,kS,roughness, 2);
 
         vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],pos);
 
@@ -150,15 +149,15 @@ vec3 getIntensityFromPosition(LightSource l, vec3 pos){
 }
 
 // Microfacet BRDF, distribution number stands for: 1 = Beckmann, 2 = GGX
-vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr){
+vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 normal, vec3 fresnel, float roughness, int distriNbr){
     // HalfVec
     vec3 halfVec = (incidentVector + excidentVector) / length(incidentVector + excidentVector);
 
     // Pre compute values:
     float excDotHalf = max(0.0001f,dot(excidentVector,halfVec));
-    float normDotExc = max(0.0001f,dot(n,excidentVector));
-    float normDotInc = max(0.0001f,dot(n,incidentVector));
-    float normDotHalf = max(0.0001f,dot(n,halfVec));
+    float normDotExc = max(0.0001f,dot(normal,excidentVector));
+    float normDotInc = max(0.0001f,dot(normal,incidentVector));
+    float normDotHalf = max(0.0001f,dot(normal,halfVec));
     float normDotHalfSquared = normDotHalf*normDotHalf;
     float roughnessSquared = roughness*roughness;
 
@@ -337,7 +336,7 @@ vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
 // http://www.thetenthplanet.de/archives/1180
 //---------------------------------------------------------------
 
-mat3 cotangent_frame(vec3 N, vec3 pos, vec2 uv)
+mat3 cotangent_frame(vec3 normal, vec3 pos, vec2 uv)
 {
     // get edge vectors of the pixel triangle
     vec3 dp1 = dFdx( pos );
@@ -346,24 +345,24 @@ mat3 cotangent_frame(vec3 N, vec3 pos, vec2 uv)
     vec2 duv2 = dFdy( uv );
  
     // solve the linear system
-    vec3 dp2perp = cross( dp2, N );
-    vec3 dp1perp = cross( N, dp1 );
+    vec3 dp2perp = cross( dp2, normal );
+    vec3 dp1perp = cross( normal, dp1 );
     vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
     vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
  
     // construct a scale-invariant frame 
     float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
-    return mat3( T * invmax, B * invmax, N );
+    return mat3( T * invmax, B * invmax, normal );
 }
 
-vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord)
+vec3 perturb_normal( vec3 normal, vec3 V, vec2 texcoord)
 {
-    // assume N, the interpolated vertex normal and 
+    // assume normal, the interpolated vertex normal and 
     // V, the view vector (vertex to eye)
     vec3 map = tex2DBiLinear(normalMap, texcoord).xyz;
     map = map * 255./127. - 128./127.;
     map.y = - map.y;
-    mat3 TBN = cotangent_frame(N, -V, texcoord);
+    mat3 TBN = cotangent_frame(normal, -V, texcoord);
     return normalize(TBN * map);
 }
 

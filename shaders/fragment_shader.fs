@@ -8,6 +8,8 @@ precision highp sampler2DShadow;
 #define MAX_LIGHTS 5
 #define MAX_DIST 0.35
 
+const vec2 invAtan = vec2(1.0 / (2.0 * M_PI), 1.0 / M_PI);
+
 layout(std140, column_major) uniform;
 
 struct LightSource
@@ -51,6 +53,8 @@ vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
 vec4 getLightColor(LightSource l, vec3 p);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
 vec3 getFilteredTexel(sampler2D texture, vec2 off);
+vec2 SampleSphericalMap(vec3 v);
+void testIBL(int face);
 
 // Normal Mapping Without Precomputed Tangents by Christian Schüler
 mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv);
@@ -65,53 +69,10 @@ vec4 tex2DBiLinear( sampler2D textureSampler_i, vec2 texCoord_i );
 vec4 BiCubic( sampler2D textureSampler, vec2 TexCoord );
 float CatMullRom( float f );
 
-const vec2 invAtan = vec2(1.0 / (2.0 * M_PI), 1.0 / M_PI);
-vec2 SampleSphericalMap(vec3 v)
-{
-    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
-    uv *= invAtan;
-    uv += 0.5;
-    return uv;
-}
-
-void testIBL(int face){
-
-    float a,b,c,d;
-    a = (gl_FragCoord.x / 640.0) - 0.5;
-    b = (gl_FragCoord.y / 480.0) - 0.5;
-    c = (1.0 - gl_FragCoord.x / 640.0) - 0.5;
-    d = (1.0 - gl_FragCoord.y / 480.0) - 0.5;
-    
-    vec3 uvw;
-    if(face == 0){
-        uvw = vec3(a,b,0.5);
-    }
-    else if(face == 1){
-        uvw = vec3(c,b,-0.5);
-    }
-    else if(face == 2){
-        uvw = vec3(a,0.5,d);
-    }
-    else if(face == 3){
-        uvw = vec3(a,-0.5,b);
-    }
-    else if(face == 4){
-        uvw = vec3(0.5,b,c);
-    }
-    else if(face == 5){
-        uvw = vec3(-0.5,b,a);
-    }
-
-    vec3 envColor = texture(environmentMap, uvw).rgb;
-    envColor = envColor / (envColor + vec3(1.0));
-    envColor = pow(envColor, vec3(1.0/2.2));
-    color = vec4(envColor, 1.0);
-}
-
 void main(void) {
 
-    vec3 specular = vec3(0.);
-    vec3 LO = vec3(0.);
+    vec3 specular = vec3(0.0);
+    vec3 LO = vec3(0.0);
     
     vec3 p = v_view.xyz;
     vec3 vNorm = normalize(vNormal);
@@ -288,6 +249,48 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
+// https://learnopengl.com/#!PBR/IBL/Diffuse-irradiance
+vec2 SampleSphericalMap(vec3 v)
+{
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
+}
+
+void testIBL(int face){
+
+    float a,b,c,d;
+    a = (gl_FragCoord.x / 640.0) - 0.5;
+    b = (gl_FragCoord.y / 480.0) - 0.5;
+    c = (1.0 - gl_FragCoord.x / 640.0) - 0.5;
+    d = (1.0 - gl_FragCoord.y / 480.0) - 0.5;
+    
+    vec3 uvw;
+    if(face == 0){
+        uvw = vec3(a,b,0.5);
+    }
+    else if(face == 1){
+        uvw = vec3(c,b,-0.5);
+    }
+    else if(face == 2){
+        uvw = vec3(a,0.5,d);
+    }
+    else if(face == 3){
+        uvw = vec3(a,-0.5,b);
+    }
+    else if(face == 4){
+        uvw = vec3(0.5,b,c);
+    }
+    else if(face == 5){
+        uvw = vec3(-0.5,b,a);
+    }
+
+    vec3 envColor = texture(environmentMap, uvw).rgb;
+    envColor = envColor / (envColor + vec3(1.0));
+    envColor = pow(envColor, vec3(1.0/2.2));
+    color = vec4(envColor, 1.0);
+}
 
 // Blaise-Guthmann texture filtering
 vec3 getFilteredTexel(sampler2D textureMap, vec2 off){

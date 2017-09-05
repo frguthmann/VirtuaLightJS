@@ -150,10 +150,11 @@ function rotateEntity(i){
 
 function updateMatrixUniformBuffer(i) {
     //console.log(mvMatrix,entities[i].mvMatrix);
-    nMatrix = mvMatrix.inverse();
+    var tempMvmatrix = mvMatrix.multiply(entities[i].mvMatrix);
+    nMatrix = tempMvmatrix.inverse();
     nMatrix = nMatrix.transpose();
     var depthMVP = depthVP.multiply(entities[i].mvMatrix);
-    transforms = new Float32Array(((mvMatrix.multiply(entities[i].mvMatrix).flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(depthMVP.flatten()));
+    transforms = new Float32Array(((tempMvmatrix.flatten().concat(nMatrix.flatten())).concat(pMatrix.flatten())).concat(depthMVP.flatten()));
     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformPerDrawBuffer);
     gl.bufferSubData(gl.UNIFORM_BUFFER, 0, transforms);
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);

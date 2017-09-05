@@ -76,7 +76,7 @@ void main(void) {
     
     vec3 pos = worldPos.xyz;
     vec3 vNorm = normalize(vNormal);
-    vec3 excidentVector = normalize(-pos);
+    vec3 excidentVector = normalize(camPos-pos);
 
     /*testIBL(3);
     return;*/

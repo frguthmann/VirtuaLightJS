@@ -8,7 +8,6 @@ function drawScene() {
     if(camera.shouldSetup){
         camera.setup();
         camera.shouldSetup = false;
-        //        gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
     }
 
     // Compute light positions relative to this camera and update UBO
@@ -51,6 +50,9 @@ function render(){
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     // Use lighting program
     gl.useProgram(shaderProgram);
+
+    gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
+
     // Activate and use depth texture
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, depthMap);

@@ -117,11 +117,6 @@ void main(void) {
     vec3 vNorm = normalize(vNormal);
     vec3 excidentVector = normalize(-p);
 
-    /*if(camPos.x != 0.){
-        color = vec4(0.0, 0.1, 0.0, 1.0);
-        return;
-    }*/
-
     /*testIBL(3);
     return;*/
     
@@ -170,7 +165,7 @@ void main(void) {
     // Debug: print numbers
     /*vec2 vFontSize = vec2(8.0, 15.0);
     resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, 
-        xy.x, 4.0, 10.0));*/
+        camPos.x, 4.0, 10.0));*/
 
     // Tone mapping by reinhart operator
     //resultingColor = resultingColor / (resultingColor + vec3(1.0));

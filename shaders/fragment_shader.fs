@@ -118,8 +118,8 @@ void main(void) {
 
     // Ambient lighting
     // No normal mapping for ambient light, it's weird otherwise
-    vec3 irradiance = texture(environmentMap, vNormal).rgb;
-    vec3 kS = fresnelSchlickRoughness(max(dot(vNormal, excidentVector), 0.0), f0, roughness); 
+    vec3 irradiance = texture(environmentMap, vNorm).rgb;
+    vec3 kS = fresnelSchlickRoughness(max(dot(vNorm, excidentVector), 0.0), f0, roughness); 
     vec3 kD = 1.0 - kS;
     vec3 diffuse = kD * irradiance * albedo;
     float ambientIntensity = 0.1;

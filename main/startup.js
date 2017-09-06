@@ -202,7 +202,7 @@ function setSamplerUniforms(){
     gl.uniform1i(gl.getUniformLocation(shaderProgram, 'environmentMap'), 6);
 }
 
-// Wait for both default texture and main initialization code to finish before drawing
+// Wait for default texture to be loaded, skybox to be initialized and main initialization code to finish before drawing
 function drawSceneIfReady(){
 
     // Check to see if the counter has been initialized
@@ -214,8 +214,8 @@ function drawSceneIfReady(){
     // Add one use of it
     drawSceneIfReady.counter++;
 
-    // This function should be called twice before we can draw the scene (default texture + main thread)
-    if(drawSceneIfReady.counter == 2){
+    // This function should be called 3 times before we can draw the scene (default texture + skybox + main thread)
+    if(drawSceneIfReady.counter == 3){
         console.log("drawing");
         drawScene();
     }
@@ -447,10 +447,25 @@ function initQuad(){
 }
 
 function initSkybox(src){
-    var skyboxTexture;
-    skyboxTexture = new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(){
+    var skyboxTexture = new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(){
         createSkybox(skyboxTexture);
     });
+    initializeIrradianceCubeMap();
+}
+
+function initializeIrradianceCubeMap(){
+    var image = new Image();
+    image.src = "textures/default.png";
+    image.onload=function() {
+        skybox.irradianceMap = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.irradianceMap);
+        for (var i = 0; i < 6; ++i)
+        {
+            // This is probably poorly done, could be optimized
+            gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
+        }
+        drawSceneIfReady();
+    };
 }
 
 function createSkybox(hdrTexture){

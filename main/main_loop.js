@@ -208,10 +208,8 @@ function setTextures(material){
         gl.activeTexture(gl.TEXTURE5);
         gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
     }
-    if(skybox.envCubemap){
-        gl.activeTexture(gl.TEXTURE6);
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.irradianceMap);
-    }
+    gl.activeTexture(gl.TEXTURE6);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.irradianceMap);
 }
 
 function updateSpinner(){

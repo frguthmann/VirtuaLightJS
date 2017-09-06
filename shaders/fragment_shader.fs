@@ -50,6 +50,8 @@ out vec4 color;
 vec3 getIntensityFromPosition(LightSource l, vec3 pos);
 vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 normal, vec3 fresnel, float roughness, int distriNbr);
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
+// https://seblagarde.wordpress.com/2011/08/17/hello-world/
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness);
 vec4 getLightColor(LightSource l, vec3 pos);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
 vec3 getFilteredTexel(sampler2D texture, vec2 off);
@@ -119,8 +121,18 @@ void main(void) {
     vec3 lightDir = normalize(u_perPass.lights[0].position-pos);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
 
-    vec3 ambient = vec3(0.015) * albedo * ao;
-    vec3 resultingColor = ambient + LO * shadowFactor;
+    // Ambient lighting
+    // No normal mapping for ambient light, it's weird otherwise
+    vec3 irradiance = texture(environmentMap, vNormal).rgb;
+    vec3 kS = fresnelSchlickRoughness(max(dot(vNormal, excidentVector), 0.0), f0, roughness); 
+    vec3 kD = 1.0 - kS;
+    vec3 diffuse = kD * irradiance * albedo;
+    
+    float ambientIntensity = 1.0;
+    vec3 ambient = diffuse * ao * ambientIntensity;
+    //vec3 ambient = vec3(0.015) * albedo * ao;
+
+    vec3 resultingColor = (ambient + LO) * shadowFactor; 
 
     // Debug: print numbers
     /*vec2 vFontSize = vec2(8.0, 15.0);
@@ -205,6 +217,11 @@ vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0)
     vec3 halfVec = (incidentVector + excidentVector) / length(incidentVector + excidentVector);
     vec3 schlick = f0 + (1.0-f0)*pow(1.0-max(0.0f,dot(incidentVector,halfVec)),5.0);
     return schlick;
+}
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }  
 
 vec4 getLightColor(LightSource l, vec3 pos){
@@ -234,7 +251,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
         for(float y = -1.0; y <= 1.0; y+=0.5)
         {
             vec3 UVC = vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z + bias);
-            shadow += texture(shadowMap, UVC) == 0.0 ? 0.0 : 1.0;        
+            shadow += texture(shadowMap, UVC) == 0.0 ? 0.1 : 1.0;        
         }    
     }
 

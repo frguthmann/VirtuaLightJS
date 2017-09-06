@@ -69,17 +69,7 @@ function drawSkybox(){
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
 
     // Update uniforms
-    var viewMatrix = Matrix.I(4);
-    var pos = {x:0,y:0,z:0};
-
-    camera.polar2Cartesian(Math.PI - camera.camTheta,2*Math.PI - camera.camPhi, camera.camDist2Target, pos);
-
-    pos.x += camera.camTargetX;
-    pos.y += camera.camTargetY;
-    pos.z += camera.camTargetZ;
-    viewMatrix = makeLookAt(pos.x, pos.y, pos.z, camera.camTargetX, camera.camTargetY, camera.camTargetZ, 0.0, 1.0, 0.0);
-
-    gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(viewMatrix)));
+    gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix.inverse())));
     gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
 
     // Bind VAO

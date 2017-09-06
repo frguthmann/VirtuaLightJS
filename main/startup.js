@@ -252,7 +252,7 @@ function loadObjects(){
                 normal      : "textures/floor/tiles_N.png",
                 roughness   : "textures/floor/tiles_R.png",
                 ao          : "textures/floor/tiles_AO.png",
-                fresnel     : "",
+                fresnel     : undefined,
             },
             background : {
                 albedo      : "textures/rust/rust_BC.png",
@@ -291,7 +291,7 @@ function loadObjects(){
                 normal      : "https://i.imgur.com/j9DA0JB.png",
                 roughness   : "https://i.imgur.com/R0K0XiA.png",
                 ao          : "https://i.imgur.com/iPPTZoU.png",
-                fresnel     : "",
+                fresnel     : undefined,
             },
             background : {
                 albedo      : "https://i.imgur.com/IOknncI.jpg",
@@ -304,7 +304,7 @@ function loadObjects(){
     }
 
     // Start drawing the scene one the texture is loaded
-    MeshMaterial.loadDefaultTexture(function(){
+    Texture.loadDefaultTexture(function(){
         console.log("Default texture loaded");
         // The scene will be drawn only if the main initialization is done
         drawSceneIfReady();

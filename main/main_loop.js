@@ -214,8 +214,8 @@ function setTextures(material){
 
 function updateSpinner(){
     var loadPercent = document.getElementById("loadPercent");
-    loadPercent.textContent = Math.floor((MeshMaterial.nbTextureLoaded / MeshMaterial.nbTextureToLoad) * 100) + "%";
-    if(MeshMaterial.nbTextureLoaded == MeshMaterial.nbTextureToLoad){
+    loadPercent.textContent = Math.floor((Texture.nbTextureLoaded / Texture.nbTextureToLoad) * 100) + "%";
+    if(Texture.nbTextureLoaded == Texture.nbTextureToLoad){
         var spinner = document.getElementById("loader");
         spinner.parentNode.removeChild(spinner);
     }

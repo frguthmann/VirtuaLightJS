@@ -110,16 +110,11 @@ void main(void) {
         kD *= 1.0 - fresnel;
 
         specular = microFacetSpecular(incidentVector,excidentVector,normal,kS,roughness, 2);
-
         vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],pos);
 
         LO += (kD * albedo / M_PI + specular) * radiance * directionnalAttenuation;
 
     }
-
-    // Shadow computation
-    vec3 lightDir = normalize(u_perPass.lights[0].position-pos);
-    float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
 
     // Ambient lighting
     // No normal mapping for ambient light, it's weird otherwise
@@ -127,12 +122,15 @@ void main(void) {
     vec3 kS = fresnelSchlickRoughness(max(dot(vNormal, excidentVector), 0.0), f0, roughness); 
     vec3 kD = 1.0 - kS;
     vec3 diffuse = kD * irradiance * albedo;
-    
-    float ambientIntensity = 1.0;
+    float ambientIntensity = 0.1;
     vec3 ambient = diffuse * ao * ambientIntensity;
     //vec3 ambient = vec3(0.015) * albedo * ao;
 
-    vec3 resultingColor = (ambient + LO) * shadowFactor; 
+    // Shadow computation
+    vec3 lightDir = normalize(u_perPass.lights[0].position-pos);
+    float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
+
+    vec3 resultingColor = ambient + LO * shadowFactor; 
 
     // Debug: print numbers
     /*vec2 vFontSize = vec2(8.0, 15.0);
@@ -141,7 +139,6 @@ void main(void) {
 
     // Tone mapping by reinhart operator
     //resultingColor = resultingColor / (resultingColor + vec3(1.0));
-    
     // Exposure tone mapping
     float exposure = 1.0; // => should be a uniform
     resultingColor = vec3(1.0) - exp(-resultingColor * exposure);
@@ -251,7 +248,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
         for(float y = -1.0; y <= 1.0; y+=0.5)
         {
             vec3 UVC = vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z + bias);
-            shadow += texture(shadowMap, UVC) == 0.0 ? 0.1 : 1.0;        
+            shadow += texture(shadowMap, UVC) == 0.0 ? 0.0 : 1.0;        
         }    
     }
 

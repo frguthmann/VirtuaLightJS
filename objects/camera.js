@@ -43,8 +43,6 @@ class Camera {
             this.camTheta = Math.PI - 0.0001;
         }
         this.shouldSetup = true;
-        console.log("t: " + (this.camTheta * 180 / Math.PI)  + " p: " + (this.camPhi* 180 / Math.PI));
-        console.log("st: " + ((Math.PI - this.camTheta)* 180 / Math.PI) + " sp: " + ((2*Math.PI - this.camPhi)* 180 / Math.PI));
     }
 
     setup() {

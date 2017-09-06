@@ -222,6 +222,86 @@ function drawSceneIfReady(){
 }
 
 function loadObjects(){
+    var debug = 0;
+    if(debug){
+        var mats = 
+        {
+            mask : {
+                albedo      : "models/mask/mask_BC.jpg",
+                normal      : "models/mask/mask_N.jpg",
+                roughness   : "models/mask/mask_R.jpg",
+                ao          : "models/mask/mask_AO.jpg",
+                fresnel     : "models/mask/mask_M.jpg",
+            },
+            ball: {
+                albedo      : "models/ball/ball_BC.png",
+                normal      : "models/ball/ball_N.png",
+                roughness   : "models/ball/ball_R.png",
+                ao          : "models/ball/ball_AO.png",
+                fresnel     : "models/ball/ball_M.png",
+            },
+            sword : {
+                albedo      : "models/sword/sword_BC.jpg",
+                normal      : "models/sword/sword_N.png",
+                roughness   : "models/sword/sword_R.jpg",
+                ao          : "textures/default.png",
+                fresnel     : "models/sword/sword_M.jpg",
+            },
+            floor : {
+                albedo      : "textures/floor/tiles_BC.png",
+                normal      : "textures/floor/tiles_N.png",
+                roughness   : "textures/floor/tiles_R.png",
+                ao          : "textures/floor/tiles_AO.png",
+                fresnel     : "",
+            },
+            background : {
+                albedo      : "textures/rust/rust_BC.png",
+                normal      : "textures/rust/rust_N.png",
+                roughness   : "textures/rust/rust_R.png",
+                ao          : "textures/rust/rust_AO.png",
+                fresnel     : "textures/rust/rust_M.png",
+            }
+        };
+    }else{
+        var mats = 
+        {
+            mask : {
+                albedo      : "https://i.imgur.com/wFBr71x.jpg",
+                normal      : "https://i.imgur.com/i7ayCYF.jpg",
+                roughness   : "https://i.imgur.com/vfjTFzs.jpg",
+                ao          : "https://i.imgur.com/0tuvwzV.jpg",
+                fresnel     : "https://i.imgur.com/Me4jjLn.jpg",
+            },
+            ball: {
+                albedo      : "https://i.imgur.com/2Bv8bfF.jpg",
+                normal      : "https://i.imgur.com/vS2wJcD.jpg",
+                roughness   : "https://i.imgur.com/LEBf18e.png",
+                ao          : "https://i.imgur.com/MtZ3wdH.png",
+                fresnel     : "https://i.imgur.com/DnBrkti.png",
+            },
+            sword : {
+                albedo      : "https://i.imgur.com/VognpHu.jpg",
+                normal      : "https://i.imgur.com/iKCTZ86.png",
+                roughness   : "https://i.imgur.com/PjF7OPh.jpg",
+                ao          : "textures/default.png",
+                fresnel     : "https://i.imgur.com/CAFmeh3.jpg",
+            },
+            floor : {
+                albedo      : "https://i.imgur.com/hcI7jaA.jpg",
+                normal      : "https://i.imgur.com/j9DA0JB.png",
+                roughness   : "https://i.imgur.com/R0K0XiA.png",
+                ao          : "https://i.imgur.com/iPPTZoU.png",
+                fresnel     : "",
+            },
+            background : {
+                albedo      : "https://i.imgur.com/IOknncI.jpg",
+                normal      : "https://i.imgur.com/dbkRGWy.png",
+                roughness   : "https://i.imgur.com/9E3kUMv.png",
+                ao          : "https://i.imgur.com/2Ozqith.png",
+                fresnel     : "https://i.imgur.com/GPTXRqV.png",
+            }
+        };
+    }
 
     // Start drawing the scene one the texture is loaded
     MeshMaterial.loadDefaultTexture(function(){
@@ -230,26 +310,16 @@ function loadObjects(){
         drawSceneIfReady();
     });
 
-    // Load and transform the gun object
-    material = new MeshMaterial(
-        "models/mask/mask_BC.jpg",
-        "models/mask/mask_N.jpg",
-        "models/mask/mask_R.jpg",
-        "models/mask/mask_AO.jpg",
-        "models/mask/mask_M.jpg");
+    // Load and transform the mask object
+    material = new MeshMaterial(mats.mask);
     var mesh = new Mesh(material);
     mesh.loadPly(maskjs);
     entities.push(new Entity(mesh, "Mask", Matrix.I(4)));
     entities[entities.length-1].pos = [-1.3,1,0];
     entities[entities.length-1].scale = 1.3;
 
-     // Ball thingy
-    material = new MeshMaterial(
-        "models/ball/ball_BC.png",
-        "models/ball/ball_N.png",
-        "models/ball/ball_R.png",
-        "models/ball/ball_AO.png",
-        "models/ball/ball_M.png");
+    // Ball thingy
+    material = new MeshMaterial(mats.ball);
     mesh = new Mesh(material);
     mesh.loadPly(balljs);
     entities.push(new Entity(mesh, "Ball", Matrix.I(4)));
@@ -257,23 +327,14 @@ function loadObjects(){
     //entities[entities.length-1].scale = 0.1;
 
     // Sword
-    material = new MeshMaterial(
-        "models/sword/sword_BC.jpg",
-        "models/sword/sword_N.png",
-        "models/sword/sword_R.jpg",
-        "textures/default.png",
-        "models/sword/sword_M.jpg");
+    material = new MeshMaterial(mats.sword);
     mesh = new Mesh(material);
     mesh.loadPly(swordjs);
     entities.push(new Entity(mesh, "Sword", Matrix.I(4)));
     entities[entities.length-1].pos = [0,1.8,-2];
 
     // Create a plan underneath both objects
-    material = new MeshMaterial(
-        "textures/floor/tiles_BC.png",
-        "textures/floor/tiles_N.png",
-        "textures/floor/tiles_R.png",
-        "textures/floor/tiles_AO.png");
+    material = new MeshMaterial(mats.floor);
     /*material = new MeshMaterial( shaderProgram,
         "textures/brick/brick_BC.jpg",
         "textures/brick/brick_N.jpg");*/
@@ -282,12 +343,7 @@ function loadObjects(){
     entities.push(new Entity(mesh, "Floor", Matrix.I(4)));
 
     // BACKGROUND PLAN
-    material = new MeshMaterial(
-        "textures/rust/rust_BC.png",
-        "textures/rust/rust_N.png",
-        "textures/rust/rust_R.png",
-        "textures/rust/rust_AO.png");
-        "textures/rust/rust_M.png",
+    material = new MeshMaterial(mats.background);
     mesh = new Mesh(material);
     mesh.makePlan2(1.0);
     entities.push(new Entity(mesh, "Background", Matrix.I(4)));

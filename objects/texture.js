@@ -8,6 +8,7 @@ class Texture{
         }else{
             image = new HDRImage();
         }
+        image.crossOrigin = "anonymouss";
         
         var texture = gl.createTexture();
 
@@ -28,7 +29,7 @@ class Texture{
             }
             gl.bindTexture(gl.TEXTURE_2D, null);
 
-            //console.log("Loaded " + texturePath + " successfully");
+            console.log("Loaded " + texturePath + " successfully");
 
             if(callback){
                 callback(texture);

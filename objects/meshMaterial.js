@@ -1,6 +1,6 @@
 class MeshMaterial{
 
-    constructor(albedo, normal, roughness, ao, fresnel){
+    constructor(material){
 
         // Default texture first because loading might take a while
         this.albedo     = MeshMaterial.defaultTexture;
@@ -14,11 +14,13 @@ class MeshMaterial{
         }
 
         // Async loading of actual textures, webgl will start rendering before this is over
-        this.assignTexture("albedo", albedo, false);
-        this.assignTexture("normal", normal, false);
-        this.assignTexture("roughness", roughness, false);
-        this.assignTexture("ao", ao, false);
-        this.assignTexture("fresnel", fresnel, false);
+        if(material){
+            this.assignTexture("albedo", material.albedo, false);
+            this.assignTexture("normal", material.normal, false);
+            this.assignTexture("roughness", material.roughness, false);
+            this.assignTexture("ao", material.ao, false);
+            this.assignTexture("fresnel", material.fresnel, false);
+        }
     }
 
     assignTexture(attribute, texturePath, isHDR){    

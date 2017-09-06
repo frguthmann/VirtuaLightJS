@@ -10,7 +10,7 @@ function mvTranslate(v) {
     multMatrix(Matrix.Translation($V([v[0], v[1], v[2]])).ensure4x4());
 }
 
-function mvPushMatrix(m) {
+/*function mvPushMatrix(m) {
     if (m) {
         scene.mvMatrixStack.push(m.dup());
         mvMatrix = m.dup();
@@ -26,7 +26,7 @@ function mvPopMatrix() {
   
     mvMatrix = scene.mvMatrixStack.pop();
     return mvMatrix;
-}
+}*/
 
 function mvRotate(angle, v) {
     var inRadians = angle * Math.PI / 180.0;

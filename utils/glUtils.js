@@ -108,8 +108,11 @@ function makeLookAt(ex, ey, ez,
     var center = $V([cx, cy, cz]);
     var up = $V([ux, uy, uz]);
 
-    var mag;
+    return makeLookAtVector(eye, center, up);
+}
 
+function makeLookAtVector(eye, center, up)
+{
     var z = eye.subtract(center).toUnitVector();
     var x = up.cross(z).toUnitVector();
     var y = z.cross(x).toUnitVector();
@@ -119,9 +122,9 @@ function makeLookAt(ex, ey, ez,
                 [z.e(1), z.e(2), z.e(3), 0],
                 [0, 0, 0, 1]]);
 
-    var t = $M([[1, 0, 0, -ex],
-                [0, 1, 0, -ey],
-                [0, 0, 1, -ez],
+    var t = $M([[1, 0, 0, -eye.e(1)],
+                [0, 1, 0, -eye.e(2)],
+                [0, 0, 1, -eye.e(3)],
                 [0, 0, 0, 1]]);
     return m.x(t);
 }

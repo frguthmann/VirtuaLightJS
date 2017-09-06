@@ -8,6 +8,8 @@ precision highp sampler2DShadow;
 #define MAX_LIGHTS 5
 #define MAX_DIST 0.35
 
+const vec2 invAtan = vec2(1.0 / (2.0 * M_PI), 1.0 / M_PI);
+
 layout(std140, column_major) uniform;
 
 struct LightSource
@@ -27,15 +29,17 @@ uniform PerPass
     float nbLights;
 } u_perPass;
 
-uniform sampler2DShadow shadowMap;
-
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
 uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 uniform sampler2D fresnelMap;
+uniform sampler2DShadow shadowMap;
+uniform samplerCube environmentMap;
 
-in highp vec4 v_view ;
+uniform vec3 camPos;
+
+in highp vec4 worldPos ;
 in highp vec3 vNormal;
 in highp vec4 vFragPosLightSpace;
 in highp vec2 vTexCoords;
@@ -43,16 +47,20 @@ in highp vec2 vTexCoords;
 out vec4 color;
 
 // Custom functions
-vec3 getIntensityFromPosition(LightSource l, vec3 p);
-vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr);
+vec3 getIntensityFromPosition(LightSource l, vec3 pos);
+vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 normal, vec3 fresnel, float roughness, int distriNbr);
 vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
-vec4 getLightColor(LightSource l, vec3 p);
+// https://seblagarde.wordpress.com/2011/08/17/hello-world/
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness);
+vec4 getLightColor(LightSource l, vec3 pos);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
 vec3 getFilteredTexel(sampler2D texture, vec2 off);
+vec2 SampleSphericalMap(vec3 v);
+void testIBL(int face);
 
 // Normal Mapping Without Precomputed Tangents by Christian Schüler
-mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv);
-vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord);
+mat3 cotangent_frame(vec3 normal, vec3 pos, vec2 uv);
+vec3 perturb_normal( vec3 normal, vec3 V, vec2 texcoord);
 
 // Number rendering code below by P_Malin
 float DigitBin( const int x );
@@ -64,59 +72,70 @@ vec4 BiCubic( sampler2D textureSampler, vec2 TexCoord );
 float CatMullRom( float f );
 
 void main(void) {
-    vec3 specular = vec3(0.);
-    vec3 LO = vec3(0.);
-    
-    vec3 p = v_view.xyz;
-    vec3 vNorm = normalize(vNormal);
-    vec3 excidentVector = normalize(-p);
 
+    vec3 specular = vec3(0.0);
+    vec3 LO = vec3(0.0);
+    
+    vec3 pos = worldPos.xyz;
+    vec3 vNorm = normalize(vNormal);
+    vec3 excidentVector = normalize(camPos-pos);
+
+    /*testIBL(3);
+    return;*/
+    
     int nbLights = int(u_perPass.nbLights);
 
     vec3 albedo = pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2));
     float roughness = tex2DBiLinear(roughnessMap, vTexCoords).r;
     float ao = tex2DBiLinear(aoMap, vTexCoords).r;
     float fresnel = tex2DBiLinear(fresnelMap, vTexCoords).r;
-    vec3 n = perturb_normal( vNorm, excidentVector, vTexCoords );
+    vec3 normal = perturb_normal( vNorm, excidentVector, vTexCoords );
 
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 
     f0 = mix(f0, albedo, fresnel);
 
-
     for (int i=0 ; i<nbLights; i++){
 
-        if(distance(p,u_perPass.lights[i].position) <= MAX_DIST ){
-            color = getLightColor(u_perPass.lights[i], p);
+        if(distance(pos,u_perPass.lights[i].position) <= MAX_DIST ){
+            color = getLightColor(u_perPass.lights[i], pos);
             return;
         }
 
-        vec3 incidentVector = normalize(u_perPass.lights[i].position-p);
-        float directionnalAttenuation = max(dot(n, incidentVector), 0.0);
+        vec3 incidentVector = normalize(u_perPass.lights[i].position-pos);
+        float directionnalAttenuation = max(dot(normal, incidentVector), 0.0);
 
         vec3 kS = fresnelSchlick(incidentVector, excidentVector, f0);
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - fresnel;
 
-        specular = microFacetSpecular(incidentVector,excidentVector,n,kS,roughness, 2);
-
-        vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],p);
+        specular = microFacetSpecular(incidentVector,excidentVector,normal,kS,roughness, 2);
+        vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],pos);
 
         LO += (kD * albedo / M_PI + specular) * radiance * directionnalAttenuation;
 
     }
 
+    // Ambient lighting
+    // No normal mapping for ambient light, it's weird otherwise
+    vec3 irradiance = texture(environmentMap, vNormal).rgb;
+    vec3 kS = fresnelSchlickRoughness(max(dot(vNormal, excidentVector), 0.0), f0, roughness); 
+    vec3 kD = 1.0 - kS;
+    vec3 diffuse = kD * irradiance * albedo;
+    float ambientIntensity = 0.1;
+    vec3 ambient = diffuse * ao * ambientIntensity;
+    //vec3 ambient = vec3(0.015) * albedo * ao;
+
     // Shadow computation
-    vec3 lightDir = normalize(u_perPass.lights[0].position-p);
+    vec3 lightDir = normalize(u_perPass.lights[0].position-pos);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
 
-    vec3 ambient = vec3(0.015) * albedo * ao;
-    vec3 resultingColor = ambient + LO * shadowFactor;
+    vec3 resultingColor = ambient + LO * shadowFactor; 
 
     // Debug: print numbers
     /*vec2 vFontSize = vec2(8.0, 15.0);
     resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, 
-        xy.x, 4.0, 10.0));*/
+        camPos.x, 4.0, 10.0));*/
 
     // Tone mapping by reinhart operator
     //resultingColor = resultingColor / (resultingColor + vec3(1.0));
@@ -131,23 +150,23 @@ void main(void) {
 }
 
 // Light intensity attenuation
-vec3 getIntensityFromPosition(LightSource l, vec3 p){
-    float d = distance(l.position,p);
+vec3 getIntensityFromPosition(LightSource l, vec3 pos){
+    float d = distance(l.position,pos);
     float intFromDist = l.intensity / (l.aconst + l.alin*d + l.aquad*d*d);
     //float intFromDist = 1.0 / (d*d);
     return l.color * intFromDist;
 }
 
 // Microfacet BRDF, distribution number stands for: 1 = Beckmann, 2 = GGX
-vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 n, vec3 fresnel, float roughness, int distriNbr){
+vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 normal, vec3 fresnel, float roughness, int distriNbr){
     // HalfVec
     vec3 halfVec = (incidentVector + excidentVector) / length(incidentVector + excidentVector);
 
     // Pre compute values:
     float excDotHalf = max(0.0001f,dot(excidentVector,halfVec));
-    float normDotExc = max(0.0001f,dot(n,excidentVector));
-    float normDotInc = max(0.0001f,dot(n,incidentVector));
-    float normDotHalf = max(0.0001f,dot(n,halfVec));
+    float normDotExc = max(0.0001f,dot(normal,excidentVector));
+    float normDotInc = max(0.0001f,dot(normal,incidentVector));
+    float normDotHalf = max(0.0001f,dot(normal,halfVec));
     float normDotHalfSquared = normDotHalf*normDotHalf;
     float roughnessSquared = roughness*roughness;
 
@@ -195,13 +214,20 @@ vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0)
     vec3 halfVec = (incidentVector + excidentVector) / length(incidentVector + excidentVector);
     vec3 schlick = f0 + (1.0-f0)*pow(1.0-max(0.0f,dot(incidentVector,halfVec)),5.0);
     return schlick;
+}
+
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }  
 
-vec4 getLightColor(LightSource l, vec3 p){
-    if(distance(p,l.position) >= MAX_DIST*0.8 ){
+vec4 getLightColor(LightSource l, vec3 pos){
+    if(distance(pos,l.position) >= MAX_DIST*0.8 ){
         return vec4(0.0,0.0,0.0,1.0);
     }else{
-        return vec4(l.color, 1.0);
+        // Gamma correction to properly display light intensity influence lmao
+        float fact = pow(l.intensity / 150.0, 1.0/2.2);
+        return vec4(l.color * fact, 1.0);
     }
 }
 
@@ -236,6 +262,48 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
+// https://learnopengl.com/#!PBR/IBL/Diffuse-irradiance
+vec2 SampleSphericalMap(vec3 v)
+{
+    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
+}
+
+void testIBL(int face){
+
+    float a,b,c,d;
+    a = (gl_FragCoord.x / 640.0) - 0.5;
+    b = (gl_FragCoord.y / 480.0) - 0.5;
+    c = (1.0 - gl_FragCoord.x / 640.0) - 0.5;
+    d = (1.0 - gl_FragCoord.y / 480.0) - 0.5;
+    
+    vec3 uvw;
+    if(face == 0){
+        uvw = vec3(a,b,0.5);
+    }
+    else if(face == 1){
+        uvw = vec3(c,b,-0.5);
+    }
+    else if(face == 2){
+        uvw = vec3(a,0.5,d);
+    }
+    else if(face == 3){
+        uvw = vec3(a,-0.5,b);
+    }
+    else if(face == 4){
+        uvw = vec3(0.5,b,c);
+    }
+    else if(face == 5){
+        uvw = vec3(-0.5,b,a);
+    }
+
+    vec3 envColor = texture(environmentMap, uvw).rgb;
+    envColor = envColor / (envColor + vec3(1.0));
+    envColor = pow(envColor, vec3(1.0/2.2));
+    color = vec4(envColor, 1.0);
+}
 
 // Blaise-Guthmann texture filtering
 vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
@@ -282,33 +350,33 @@ vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
 // http://www.thetenthplanet.de/archives/1180
 //---------------------------------------------------------------
 
-mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv)
+mat3 cotangent_frame(vec3 normal, vec3 pos, vec2 uv)
 {
     // get edge vectors of the pixel triangle
-    vec3 dp1 = dFdx( p );
-    vec3 dp2 = dFdy( p );
+    vec3 dp1 = dFdx( pos );
+    vec3 dp2 = dFdy( pos );
     vec2 duv1 = dFdx( uv );
     vec2 duv2 = dFdy( uv );
  
     // solve the linear system
-    vec3 dp2perp = cross( dp2, N );
-    vec3 dp1perp = cross( N, dp1 );
+    vec3 dp2perp = cross( dp2, normal );
+    vec3 dp1perp = cross( normal, dp1 );
     vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
     vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
  
     // construct a scale-invariant frame 
     float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
-    return mat3( T * invmax, B * invmax, N );
+    return mat3( T * invmax, B * invmax, normal );
 }
 
-vec3 perturb_normal( vec3 N, vec3 V, vec2 texcoord)
+vec3 perturb_normal( vec3 normal, vec3 V, vec2 texcoord)
 {
-    // assume N, the interpolated vertex normal and 
+    // assume normal, the interpolated vertex normal and 
     // V, the view vector (vertex to eye)
     vec3 map = tex2DBiLinear(normalMap, texcoord).xyz;
     map = map * 255./127. - 128./127.;
     map.y = - map.y;
-    mat3 TBN = cotangent_frame(N, -V, texcoord);
+    mat3 TBN = cotangent_frame(normal, -V, texcoord);
     return normalize(TBN * map);
 }
 

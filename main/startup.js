@@ -202,7 +202,7 @@ function setSamplerUniforms(){
     gl.uniform1i(gl.getUniformLocation(shaderProgram, 'environmentMap'), 6);
 }
 
-// Wait for default texture to be loaded, skybox to be initialized and main initialization code to finish before drawing
+// This might be used to synchronize several asynchronous functions, not used anymore
 function drawSceneIfReady(){
 
     // Check to see if the counter has been initialized
@@ -214,8 +214,8 @@ function drawSceneIfReady(){
     // Add one use of it
     drawSceneIfReady.counter++;
 
-    // This function should be called 3 times before we can draw the scene (default texture + skybox + main thread)
-    if(drawSceneIfReady.counter == 3){
+    // This function should be called X times before we can draw the scene
+    if(drawSceneIfReady.counter == 1){
         console.log("drawing");
         drawScene();
     }
@@ -303,12 +303,8 @@ function loadObjects(){
         };
     }
 
-    // Start drawing the scene one the texture is loaded
-    Texture.loadDefaultTexture(function(){
-        console.log("Default texture loaded");
-        // The scene will be drawn only if the main initialization is done
-        drawSceneIfReady();
-    });
+    // Need that to prevent errors when drawing
+    Texture.loadDefaultTexture();
 
     // Load and transform the mask object
     material = new MeshMaterial(mats.mask);
@@ -510,18 +506,14 @@ function initSkybox(src){
 }
 
 function initializeIrradianceCubeMap(){
-    var image = new Image();
-    image.src = "textures/default.png";
-    image.onload=function() {
-        skybox.irradianceMap = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.irradianceMap);
-        for (var i = 0; i < 6; ++i)
-        {
-            // This is probably poorly done, could be optimized
-            gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, image);
-        }
-        drawSceneIfReady();
-    };
+    skybox.irradianceMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.irradianceMap);
+    var data = new Uint8Array([255.0, 255.0, 255.0]);
+    for (var i = 0; i < 6; ++i)
+    {
+        // This is probably poorly done, could be optimized
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, data);
+    }
 }
 
 function createSkybox(hdrTexture){
@@ -550,7 +542,7 @@ function initIrradianceMap(prog){
     var generateIrradianceMapProgram = initShaders(generate_skybox_vertex_shader, generate_irradiance_map_fragment_shader);
     gl.useProgram(generateIrradianceMapProgram);   
     gl.uniform1i(gl.getUniformLocation(generateIrradianceMapProgram, 'res'), irradianceMapRes);
-    skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh, 'timestamp');
+    //skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh, 'timestamp');
 }
 
 function initSkyboxShader(){

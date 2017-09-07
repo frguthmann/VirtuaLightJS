@@ -116,7 +116,7 @@ function start() {
         var verticesBuffer          = gl.createBuffer();
         var verticesIndexBuffer     = gl.createBuffer();
         var verticesNormalBuffer    = entities[i].mesh.m_normals.length > 0 ? gl.createBuffer() : false;
-        var verticesTexCoordsBuffer = entities[i].mesh.m_normals.length > 0 ? gl.createBuffer() : false;
+        var verticesTexCoordsBuffer = entities[i].mesh.m_UV.length > 0 ? gl.createBuffer() : false;
     
         // Initiate buffers
         initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
@@ -354,7 +354,8 @@ function loadObjects(){
     material.generateTextures([0,1.0,0],0.1,20);
     mesh = new Mesh(material);
     //mesh.loadOFF(rhinojs);
-    mesh.makeCube(1.0);
+    mesh.makePlan2(1.0, true);
+    //mesh.computeCubeUV();
     entities.push(new Entity(mesh, "Test Cube", Matrix.I(4)));
     entities[entities.length-1].pos = [0,1.5,-2];
     entities[entities.length-1].scale = 0.5

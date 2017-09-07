@@ -10,6 +10,8 @@ out vec4 FragColor;
 in vec3 v_view;
 
 uniform samplerCube environmentMap;
+uniform int timestamp;
+uniform int res;
 
 float rand(float n);
 float noise(float p);
@@ -26,15 +28,17 @@ void main()
     vec3 right = cross(up, normal);
     up         = cross(normal, right);
 
-    float seed = 43758.5453; 
+    //float seed = 43758.5453;
+    vec2 seed = vec2(float(NB_SAMPLE) * (gl_FragCoord.y * float(res) + gl_FragCoord.x), float(timestamp));
 
     // Take nb_sample samples
     for(int i = 0; i < NB_SAMPLE; i++)
     {
         // Randomly generate theta and phi for a uniform distribution over the sphere
-        float theta = acos(noise(seed++));         // acos[0,1] => theta in [Pi/2, 0]
-        float phi = noise(seed++) * 2.0 * M_PI;    // phi in [0,2*Pi]
-        
+        float theta = acos(rand(seed));         // acos[0,1] => theta in [Pi/2, 0]
+        seed.x++;
+        float phi = rand(seed) * 2.0 * M_PI;    // phi in [0,2*Pi]
+        seed.y++;
         // spherical to cartesian (in tangent space)
         vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
         // tangent space to world

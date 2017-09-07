@@ -23,7 +23,7 @@ Right here: https://frguthmann.github.io/VirtuaLightJS/
 - Tamy Boubekeur : http://perso.telecom-paristech.fr/~boubek/
 - Joey De Vries : https://learnopengl.com/#!About - https://joeydevries.com/#home
 - Etay Meiri : http://ogldev.atspace.co.uk/
-- Opengl-tutorials : http://www.opengl-tutorial.org/fr/
+- Opengl-tutorials : http://www.opengl-tutorial.org/
 
 ## Textured Models
 

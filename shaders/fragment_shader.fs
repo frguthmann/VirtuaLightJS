@@ -89,7 +89,7 @@ void main(void) {
     float roughness = tex2DBiLinear(roughnessMap, vTexCoords).r;
     float ao = tex2DBiLinear(aoMap, vTexCoords).r;
     float fresnel = tex2DBiLinear(fresnelMap, vTexCoords).r;
-    vec3 normal = perturb_normal( vNorm, excidentVector, vTexCoords );
+    vec3 normal = textureSize(normalMap, 0).x > 1 ? perturb_normal( vNorm, excidentVector, vTexCoords ) : vNorm;
 
     // Fresnel f0 term
     vec3 f0 = vec3(0.04); 

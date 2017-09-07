@@ -348,6 +348,16 @@ function loadObjects(){
     entities[entities.length-1].scale = 1.5;
     /*entities[entities.length-1].rot = [0,90];
     entities[entities.length-1].scale = 5.0;*/
+
+    // Test cube with uniform values
+    material = new MeshMaterial();
+    material.generateTextures([0,1.0,0],0.1,20);
+    mesh = new Mesh(material);
+    //mesh.loadOFF(rhinojs);
+    mesh.makeCube(1.0);
+    entities.push(new Entity(mesh, "Test Cube", Matrix.I(4)));
+    entities[entities.length-1].pos = [0,1.5,-2];
+    entities[entities.length-1].scale = 0.5
 }
 
 function initUBOs(){
@@ -499,8 +509,8 @@ function initQuad(){
 }
 
 function initSkybox(src){
-    var skyboxTexture = new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(){
-        createSkybox(skyboxTexture);
+    new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(texture){
+        createSkybox(texture);
     });
     initializeIrradianceCubeMap();
 }
@@ -542,7 +552,7 @@ function initIrradianceMap(prog){
     var generateIrradianceMapProgram = initShaders(generate_skybox_vertex_shader, generate_irradiance_map_fragment_shader);
     gl.useProgram(generateIrradianceMapProgram);   
     gl.uniform1i(gl.getUniformLocation(generateIrradianceMapProgram, 'res'), irradianceMapRes);
-    //skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh, 'timestamp');
+    skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh, 'timestamp');
 }
 
 function initSkyboxShader(){

@@ -15,10 +15,8 @@ class Texture{
         }
         image.crossOrigin = "anonymouss";
 
-        var texture = gl.createTexture();
-
         image.onload=function() {
-            Texture.setTextureData(texture, image, image.width, image.height, isHDR, wrap, filter);
+            var texture = Texture.generateTextureFromData(image, image.width, image.height, isHDR, wrap, filter);
             //console.log("Loaded " + texturePath + " successfully");
 
             // Keep track of how much there is left to load
@@ -39,11 +37,10 @@ class Texture{
         };
         
         image.src = texturePath; // execute the test
-        
-        return texture;
     }
 
-    static setTextureData(texture, data, width, height, isHDR, wrap, filter){
+    static generateTextureFromData(data, width, height, isHDR, wrap, filter){
+        var texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         // set the texture wrapping/filtering options (on the currently bound texture object)
@@ -59,11 +56,11 @@ class Texture{
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, width, height, 0, gl.RGB, gl.FLOAT, data.dataFloat)
         }
         gl.bindTexture(gl.TEXTURE_2D, null);
+        return texture;
     }
 
     static loadDefaultTexture(callback){            
-        Texture.defaultTexture = gl.createTexture();
         // Generate a 1*1 pixel white texture
-        Texture.setTextureData(Texture.defaultTexture, new Uint8Array([255.0, 255.0, 255.0]), 1, 1, false, gl.REPEAT, gl.NEAREST);
+    Texture.defaultTexture = Texture.generateTextureFromData(new Uint8Array([255.0, 255.0, 255.0]), 1, 1, false, gl.REPEAT, gl.NEAREST);
     }
 }

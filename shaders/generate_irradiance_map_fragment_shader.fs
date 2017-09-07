@@ -13,9 +13,7 @@ uniform samplerCube environmentMap;
 uniform int timestamp;
 uniform int res;
 
-float rand(float n);
-float noise(float p);
-float rand(vec2 co);
+float noise2(vec2 co);
 
 void main()
 {       
@@ -35,9 +33,9 @@ void main()
     for(int i = 0; i < NB_SAMPLE; i++)
     {
         // Randomly generate theta and phi for a uniform distribution over the sphere
-        float theta = acos(rand(seed));         // acos[0,1] => theta in [Pi/2, 0]
+        float theta = acos(noise2(seed));         // acos[0,1] => theta in [Pi/2, 0]
         seed.x++;
-        float phi = rand(seed) * 2.0 * M_PI;    // phi in [0,2*Pi]
+        float phi = noise2(seed) * 2.0 * M_PI;    // phi in [0,2*Pi]
         seed.y++;
         // spherical to cartesian (in tangent space)
         vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
@@ -51,18 +49,8 @@ void main()
     FragColor = vec4(irradiance, 1.0);
 }
 
-// https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
-float rand(float n){
-    return fract(sin(n) * 43758.5453123);
-}
-
-float noise(float p){
-    float fl = floor(p);
-    float fc = fract(p);
-    return mix(rand(fl), rand(fl + 1.0), fc);
-}
-
-float rand(vec2 co)
+// http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-noise2-for-opengl-es-2-0/
+float noise2(vec2 co)
 {
     highp float a = 12.9898;
     highp float b = 78.233;

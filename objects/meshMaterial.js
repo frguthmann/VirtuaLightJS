@@ -35,9 +35,16 @@ class MeshMaterial{
     }
 
     generateTextures(albedo, roughness, fresnel){
-        this.albedo     = Texture.defaultTexture; //Texture.generateTextureFromData(new Uint8Array(albedo), 1, 1, false, gl.REPEAT, gl.NEAREST);
-        this.roughness  = Texture.defaultTexture; //Texture.generateTextureFromData(new Uint8Array([roughness,roughness,roughness]), 1, 1, false, gl.REPEAT, gl.NEAREST);
-        this.fresnel    = Texture.defaultTexture; //Texture.generateTextureFromData(new Uint8Array([fresnel,fresnel,fresnel]), 1, 1, false, gl.REPEAT, gl.NEAREST);
+        // Textures with Uint8 take values between 0 and 255
+        albedo = new Uint8Array(albedo.map(i => Math.min(i * 255.0, 255.0)));
+        roughness = new Uint8Array(3).fill(Math.min(roughness * 255.0, 255.0));
+        fresnel = new Uint8Array(3).fill(Math.min(fresnel * 255.0, 255.0));
+
+        // Generate single pixel textures with the desired value
+        this.albedo     = Texture.generateTextureFromData(albedo, 1, 1, false, gl.REPEAT, gl.NEAREST);
+        this.roughness  = Texture.generateTextureFromData(roughness, 1, 1, false, gl.REPEAT, gl.NEAREST);
+        this.fresnel    = Texture.generateTextureFromData(fresnel, 1, 1, false, gl.REPEAT, gl.NEAREST);
+        // Don't override normal and set AO as none
         this.normal     = Texture.defaultTexture;
         this.ao         = Texture.defaultTexture;
     }

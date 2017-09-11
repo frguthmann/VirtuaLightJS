@@ -222,7 +222,7 @@ function drawSceneIfReady(){
 }
 
 function loadObjects(){
-    var debug = 1;
+    var debug = 0;
     if(debug){
         var mats = 
         {
@@ -350,15 +350,17 @@ function loadObjects(){
     entities[entities.length-1].scale = 5.0;*/
 
     // Test cube with uniform values
-    material = new MeshMaterial();
-    material.generateTextures([0,1.0,0],0.1,20);
+    /*material = new MeshMaterial();
+    //material.generateTextures([1.0,0.71,0.29],0.1,0.91);
+    material.generateTextures([1.0,0.766,0.336],0.25,0.47);
     mesh = new Mesh(material);
-    //mesh.loadOFF(rhinojs);
-    mesh.makePlan2(1.0, true);
+    mesh.loadOFF(rhinojs);
+    //mesh.makePlan2(1.0, true);
+    //mesh.loadPly(balljs);
     //mesh.computeCubeUV();
     entities.push(new Entity(mesh, "Test Cube", Matrix.I(4)));
-    entities[entities.length-1].pos = [0,1.5,-2];
-    entities[entities.length-1].scale = 0.5
+    entities[entities.length-1].pos = [0,1.5,2];
+    entities[entities.length-1].scale = 0.5*/
 }
 
 function initUBOs(){

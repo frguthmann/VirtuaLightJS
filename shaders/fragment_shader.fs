@@ -85,7 +85,7 @@ void main(void) {
     
     int nbLights = int(u_perPass.nbLights);
 
-    vec3 albedo = pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2));
+    vec3 albedo = textureSize(albedoMap, 0).x > 1 ? pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2)) : tex2DBiLinear(albedoMap, vTexCoords).rgb;
     float roughness = tex2DBiLinear(roughnessMap, vTexCoords).r;
     float ao = tex2DBiLinear(aoMap, vTexCoords).r;
     float fresnel = tex2DBiLinear(fresnelMap, vTexCoords).r;
@@ -203,7 +203,7 @@ vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 normal, v
         geometry = 1.0;
     }
 
-    float denominator = 4.0 * normDotInc * normDotExc;
+    float denominator = 4.0 * normDotInc * normDotExc + 0.001;
     vec3 numerator = distribution * fresnel * geometry;
 
     return numerator / denominator;

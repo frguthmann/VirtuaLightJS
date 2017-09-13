@@ -7,7 +7,7 @@ const float M_PI = 3.14159265359;
 const int NB_SAMPLE = 16000;
 
 out vec4 FragColor;
-in vec3 v_view;
+in vec3 localPos;
 
 uniform samplerCube environmentMap;
 uniform int timestamp;
@@ -18,12 +18,12 @@ float noise2(vec2 co);
 void main()
 {       
     // the sample direction equals the hemisphere's orientation 
-    vec3 normal = normalize(v_view);
+    vec3 normal = normalize(localPos);
     vec3 irradiance = vec3(0.0);  
 
     // To World base
-    vec3 up    = vec3(0.0, 1.0, 0.0);
-    vec3 right = cross(up, normal);
+    vec3 up = abs(normal.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 right = normalize(cross(up, normal));
     up         = cross(normal, right);
 
     //float seed = 43758.5453;
@@ -33,7 +33,7 @@ void main()
     for(int i = 0; i < NB_SAMPLE; i++)
     {
         // Randomly generate theta and phi for a uniform distribution over the sphere
-        float theta = acos(noise2(seed));         // acos[0,1] => theta in [Pi/2, 0]
+        float theta = acos(sqrt(1.0-noise2(seed)));         // acos[0,1] => theta in [Pi/2, 0]
         seed.x++;
         float phi = noise2(seed) * 2.0 * M_PI;    // phi in [0,2*Pi]
         seed.y++;

@@ -93,7 +93,7 @@ function start() {
     // Set clear color to light blue
     gl.clearColor(0.0, 0.0, 1.0, 0.1);
     // Clear the color as well as the depth buffer.
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);  
 
     // Initiate shaders
     shaderProgram = initShaders(vertex_shader, fragment_shader);
@@ -222,7 +222,7 @@ function drawSceneIfReady(){
 }
 
 function loadObjects(){
-    var debug = 0;
+    var debug = 1;
     if(debug){
         var mats = 
         {
@@ -352,7 +352,7 @@ function loadObjects(){
     // Test cube with uniform values
     /*material = new MeshMaterial();
     //material.generateTextures([1.0,0.71,0.29],0.1,0.91);
-    material.generateTextures([1.0,0.766,0.336],0.25,0.47);
+    material.generateTextures([1.0,0.766,0.336],0.062,1.0);
     mesh = new Mesh(material);
     mesh.loadOFF(rhinojs);
     //mesh.makePlan2(1.0, true);
@@ -512,6 +512,7 @@ function initQuad(){
 }
 
 function initSkybox(src){
+    skybox.prefilterMap = gl.createTexture();
     new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(texture){
         createSkybox(texture);
     });
@@ -548,6 +549,7 @@ function createSkybox(hdrTexture){
 
     initSkyboxShader();
     initIrradianceMap(shaderProgram);
+    specularInit();
 }
 
 function initIrradianceMap(prog){
@@ -633,6 +635,86 @@ function renderToCubeMap(prog, src, srcType, res, vao, mesh, placeholder, unifor
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.enable(gl.CULL_FACE);
     return envCubemap;
+}
+
+function specularInit(){
+    skybox.prefilterMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.prefilterMap);
+    var res = 128;
+    for (var i = 0; i < 6; ++i)
+    {
+        // This is probably poorly done, could be optimized
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, res, res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+    }
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+
+    var generatePrefilterMapProgram = initShaders(generate_skybox_vertex_shader, generate_prefilter_map_fragment_shader);
+    gl.useProgram(generatePrefilterMapProgram);  
+
+    // Set uniforms
+    var projUniform = gl.getUniformLocation(generatePrefilterMapProgram, "uPMatrix");
+    var environmentMapUniform = gl.getUniformLocation(generatePrefilterMapProgram, "environmentMap");
+    var viewUniform = gl.getUniformLocation(generatePrefilterMapProgram, "view");
+    var roughnesUniform = gl.getUniformLocation(generatePrefilterMapProgram, "roughness");
+    var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0); 
+    gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
+    gl.uniform1i(environmentMapUniform, 0); 
+
+    // Just frame buffer things
+    var captureFBO = gl.createFramebuffer();
+    var captureRBO = gl.createRenderbuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);  
+
+    // Configure context for cube rendering
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
+    gl.disable(gl.CULL_FACE);
+
+    var captureDirections = [ 
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([-1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0, -1.0,  0.0]), $V([0.0,  0.0, -1.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  1.0,  0.0]), $V([0.0,  0.0,  1.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0,  1.0]), $V([0.0, -1.0,  0.0])),
+        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0, -1.0]), $V([0.0, -1.0,  0.0]))
+    ];
+
+    
+    var maxMipLevels = 5;
+    for (var mip = 0; mip < maxMipLevels; ++mip){
+        // reisze framebuffer according to mip-level size.
+        var mipWidth  = res * Math.pow(0.5, mip);
+        var mipHeight = res * Math.pow(0.5, mip);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, mipWidth, mipHeight);
+        gl.viewport(0, 0, mipWidth, mipHeight);
+
+        var roughness = mip / (maxMipLevels - 1);
+        gl.uniform1f(roughnesUniform, roughness); 
+        // Actual render on each face
+        for (var i = 0; i < 6; ++i)
+        {
+            gl.uniformMatrix4fv(viewUniform, false, new Float32Array(flattenObject(captureDirections[i])));
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
+                                   gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, skybox.prefilterMap, mip);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.bindVertexArray(skybox.vao);
+            gl.drawElements(gl.TRIANGLES, skybox.mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
+            gl.bindVertexArray(null);
+        }
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.enable(gl.CULL_FACE);
+
 }
 
 function initShadowMapFrameBuffer(){

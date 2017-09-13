@@ -5,7 +5,7 @@ var generate_skybox_fragment_shader = `
 precision highp float;
 
 out vec4 color;
-in vec3 v_view;
+in vec3 localPos;
 
 uniform sampler2D environmentMap;
 
@@ -20,7 +20,7 @@ vec2 SampleSphericalMap(vec3 v)
 
 void main()
 {       
-    vec2 uv = SampleSphericalMap(normalize(v_view)); // make sure to normalize v_view
+    vec2 uv = SampleSphericalMap(normalize(localPos)); // make sure to normalize localPos
     vec3 tempColor = texture(environmentMap, uv).rgb;
     
     color = vec4(tempColor, 1.0);

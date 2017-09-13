@@ -512,7 +512,6 @@ function initQuad(){
 }
 
 function initSkybox(src){
-    skybox.prefilterMap = gl.createTexture();
     new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(texture){
         createSkybox(texture);
     });
@@ -546,6 +545,9 @@ function createSkybox(hdrTexture){
     var generateSkyboxProgram = initShaders(generate_skybox_vertex_shader, generate_skybox_fragment_shader);
     gl.useProgram(generateSkyboxProgram);  
     skybox.envCubemap = renderToCubeMap(generateSkyboxProgram, hdrTexture, gl.TEXTURE_2D, skybox.res, skybox.vao, skybox.mesh);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 
     initSkyboxShader();
     initIrradianceMap(shaderProgram);
@@ -664,7 +666,8 @@ function specularInit(){
     var roughnesUniform = gl.getUniformLocation(generatePrefilterMapProgram, "roughness");
     var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0); 
     gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
-    gl.uniform1i(environmentMapUniform, 0); 
+    gl.uniform1i(environmentMapUniform, 0);
+    gl.uniform1f(gl.getUniformLocation(generatePrefilterMapProgram, "resolution"), skybox.res); 
 
     // Just frame buffer things
     var captureFBO = gl.createFramebuffer();

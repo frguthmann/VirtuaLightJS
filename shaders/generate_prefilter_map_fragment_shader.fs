@@ -4,6 +4,7 @@ precision highp float;
 
 uniform samplerCube environmentMap;
 uniform float roughness;
+uniform float resolution;
 
 const float PI = 3.14159265359;
 
@@ -13,13 +14,14 @@ out vec4 FragColor;
 float RadicalInverse_VdC(uint bits);
 vec2 Hammersley(uint i, uint N);
 vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness);
+float DistributionGGX(float NdotH, float roughness);
   
 void main()
 {       
     vec3 N = normalize(localPos);    
     vec3 V = N;
 
-    const uint SAMPLE_COUNT = 1024u;
+    const uint SAMPLE_COUNT = 2048u;
     float totalWeight = 0.0;   
     vec3 prefilteredColor = vec3(0.0);     
     for(uint i = 0u; i < SAMPLE_COUNT; ++i)
@@ -30,8 +32,18 @@ void main()
 
         float NdotL = max(dot(N, L), 0.0);
         if(NdotL > 0.0)
-        {
-            prefilteredColor += texture(environmentMap, L).rgb * NdotL;
+        {   
+            
+            // Artifact reduction by Chetan Jags
+            float NdotH = max(dot(N, H), 0.0);
+            float HdotV = max(dot(H, V), 0.0);
+            float D   = DistributionGGX(NdotH, roughness);
+            float pdf = (D * NdotH / (4.0 * HdotV)) + 0.0001; 
+            float saTexel  = 4.0 * PI / (6.0 * resolution * resolution);
+            float saSample = 1.0 / (float(SAMPLE_COUNT) * pdf + 0.0001);
+            float mipLevel = roughness == 0.0 ? 0.0 : 0.5 * log2(saSample / saTexel); 
+
+            prefilteredColor += textureLod(environmentMap, L, mipLevel).rgb * NdotL;
             totalWeight      += NdotL;
         }
     }
@@ -76,5 +88,18 @@ float RadicalInverse_VdC(uint bits)
 vec2 Hammersley(uint i, uint N)
 {
     return vec2(float(i)/float(N), RadicalInverse_VdC(i));
+}
+
+float DistributionGGX(float NdotH, float roughness)
+{
+    float a      = roughness*roughness;
+    float a2     = a*a;
+    float NdotH2 = NdotH*NdotH;
+    
+    float nom   = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+    
+    return nom / denom;
 }
 `

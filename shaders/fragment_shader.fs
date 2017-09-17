@@ -29,13 +29,15 @@ uniform PerPass
     float nbLights;
 } u_perPass;
 
-uniform sampler2D albedoMap;
-uniform sampler2D normalMap;
-uniform sampler2D roughnessMap;
-uniform sampler2D aoMap;
-uniform sampler2D fresnelMap;
-uniform sampler2DShadow shadowMap;
-uniform samplerCube environmentMap;
+uniform sampler2DShadow shadowMap; 
+uniform sampler2D       albedoMap;
+uniform sampler2D       normalMap;
+uniform sampler2D       roughnessMap;
+uniform sampler2D       aoMap;
+uniform sampler2D       fresnelMap;
+uniform samplerCube     environmentMap;
+uniform samplerCube     prefilterMap;
+uniform sampler2D       brdfLUT;
 
 uniform vec3 camPos;
 
@@ -73,7 +75,6 @@ float CatMullRom( float f );
 
 void main(void) {
 
-    vec3 specular = vec3(0.0);
     vec3 LO = vec3(0.0);
     
     vec3 pos = worldPos.xyz;
@@ -109,22 +110,29 @@ void main(void) {
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - fresnel;
 
-        specular = microFacetSpecular(incidentVector,excidentVector,normal,kS,roughness, 2);
+        vec3 specular = microFacetSpecular(incidentVector,excidentVector,normal,kS,roughness, 2);
         vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],pos);
 
         LO += (kD * albedo / M_PI + specular) * radiance * directionnalAttenuation;
 
     }
 
-    // Ambient lighting
-    // No normal mapping for ambient light, it's weird otherwise
-    vec3 irradiance = texture(environmentMap, vNorm).rgb;
     vec3 kS = fresnelSchlickRoughness(max(dot(vNorm, excidentVector), 0.0), f0, roughness); 
     vec3 kD = 1.0 - kS;
-    vec3 diffuse = kD * irradiance * albedo;
-    float ambientIntensity = 0.1;
-    vec3 ambient = diffuse * ao * ambientIntensity;
-    //vec3 ambient = vec3(0.015) * albedo * ao;
+    //kD *= 1.0 - fresnel;
+
+    // No normal mapping for ambient light, it's weird otherwise
+    vec3 irradiance = texture(environmentMap, vNorm).rgb;
+    vec3 ambiantDiffuse = kD * irradiance * albedo;
+
+    const float MAX_REFLECTION_LOD = 4.0;
+    vec3 reflectionVector = reflect(-excidentVector, normal);
+    vec3 prefilteredColor = textureLod(prefilterMap, reflectionVector,  roughness * MAX_REFLECTION_LOD).rgb;    
+    vec2 brdf  = texture(brdfLUT, vec2(max(dot(normal, excidentVector), 0.0), roughness)).rg;
+    vec3 ambiantSpecular = prefilteredColor * (kS * brdf.x + brdf.y);
+    
+    float ambientIntensity = 1.0;
+    vec3 ambient = (ambiantDiffuse + ambiantSpecular) * ao * ambientIntensity;
 
     // Shadow computation
     vec3 lightDir = normalize(u_perPass.lights[0].position-pos);

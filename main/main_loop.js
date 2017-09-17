@@ -22,7 +22,7 @@ function drawScene() {
     }
 
     // Pass X: debug
-    // debugDrawOnQuad();
+    //debugDrawOnQuad();
 
     requestAnimationFrame(drawScene);
     stats.end();
@@ -49,6 +49,7 @@ function render(){
     // Update lights and camera uniforms
     updateUniforms();
     // Get back to backface culling for normal rendering
+    //gl.cullFace(gl.BACK);
     gl.disable(gl.CULL_FACE);
     // Reload original viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
@@ -80,15 +81,13 @@ function drawSkybox(){
 }
 
 function debugDrawOnQuad(texture){
-    gl.clearColor(0.0, 0.0, 1.0, 0.1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    // Quad for debug
     gl.useProgram(quadProgram);
-    gl.uniform1i(drawUniformDepthLocation, 0);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(gl.getUniformLocation(quadProgram, 'albedo'), 1);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, Texture.defaultTexture);
     gl.bindVertexArray(quadVertexArray);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    gl.bindVertexArray(null);
 }
 
 function drawAllObjectsDepth(){
@@ -210,6 +209,10 @@ function setTextures(material){
     }
     gl.activeTexture(gl.TEXTURE6);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.irradianceMap);
+    gl.activeTexture(gl.TEXTURE7);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.prefilterMap);
+    gl.activeTexture(gl.TEXTURE8);
+    gl.bindTexture(gl.TEXTURE_2D, skybox.brdfLUTTexture);
 }
 
 function updateSpinner(){

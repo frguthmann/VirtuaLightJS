@@ -329,7 +329,7 @@ function loadObjects(){
     material = new MeshMaterial(mats.ball);
     mesh = new Mesh(material);
     mesh.loadPly(balljs);
-    entities.push(new Entity(mesh, "Ball", Matrix.I(4)));
+    entities.push(new Entity(mesh, "Material Ball", Matrix.I(4)));
     entities[entities.length-1].pos = [1.25,0.355,0];
     //entities[entities.length-1].scale = 0.1;
 
@@ -360,9 +360,8 @@ function loadObjects(){
     material.generateTextures([0.996,0.805,0.406],0.25,1.0);
     mesh = new Mesh(material);
     mesh.loadPly(spherejs);
-    entities.push(new Entity(mesh, "Sphere", Matrix.I(4)));
+    entities.push(new Entity(mesh, "Gold Sphere", Matrix.I(4)));
     entities[entities.length-1].pos = [0,0.5,2];
-    entities[entities.length-1].rot = [0,90];
     entities[entities.length-1].scale = 0.5;
 
     //PBRScale(7, 7, spherejs)

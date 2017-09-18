@@ -135,7 +135,7 @@ void main(void) {
     vec3 ambient = (ambiantDiffuse + ambiantSpecular) * ao * ambientIntensity;
 
     // Shadow computation
-    vec3 lightDir = normalize(u_perPass.lights[0].position-pos);
+    vec3 lightDir = normalize(u_perPass.lights[nbLights-1].position-pos);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
 
     vec3 resultingColor = (ambient + LO) * shadowFactor; 

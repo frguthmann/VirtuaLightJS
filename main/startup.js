@@ -842,7 +842,7 @@ function createLights(prog, uboIdx){
     // Actual lights of the scene
     lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,1]),0,1,1,1,lights.length));
     lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,0.5]),0,1,1,1,lights.length));
-    //lights.push(new LightSource($V([11.9,7.1,8.8,1]),$V([0.996,0.945,0.878]),200,1,1,1,lights.length));
+    lights.push(new LightSource($V([11.9,7.1,8.8,1]),$V([0.996,0.945,0.878]),200,1,1,1,lights.length));
     var length = lights.length;
 
     // Filling dummy data for up to 5 lights because the UBO / shader expects 5 max

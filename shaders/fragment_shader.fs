@@ -119,7 +119,7 @@ void main(void) {
 
     vec3 kS = fresnelSchlickRoughness(max(dot(vNorm, excidentVector), 0.0), f0, roughness); 
     vec3 kD = 1.0 - kS;
-    //kD *= 1.0 - fresnel;
+    kD *= 1.0 - fresnel;
 
     // No normal mapping for ambient light, it's weird otherwise
     vec3 irradiance = texture(environmentMap, vNorm).rgb;

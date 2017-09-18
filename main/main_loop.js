@@ -21,9 +21,6 @@ function drawScene() {
         drawSkybox();
     }
 
-    // Pass X: debug
-    //debugDrawOnQuad();
-
     requestAnimationFrame(drawScene);
     stats.end();
 }
@@ -55,20 +52,17 @@ function render(){
     // Reload original viewport
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    // Activate and use depth texture
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, depthMap);
     drawAllObjects();
     gl.enable(gl.CULL_FACE);
 }
 
 function drawSkybox(){
     gl.useProgram(skybox.program);
-    // We're inside the cube, must remove cull face
-    gl.disable(gl.CULL_FACE);
+    // We're inside the cube, must remove front face culling
+    gl.cullFace(gl.FRONT);
     // Enable environnement map
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.prefilterMap);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
 
     // Update uniforms
     gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix.inverse())));
@@ -78,17 +72,9 @@ function drawSkybox(){
     gl.bindVertexArray(skybox.vao);
     gl.drawElements(gl.TRIANGLES, skybox.mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
     gl.bindVertexArray(null);
-    gl.enable(gl.CULL_FACE);
-}
-
-function debugDrawOnQuad(texture){
-    gl.useProgram(quadProgram);
-    gl.uniform1i(gl.getUniformLocation(quadProgram, 'albedo'), 1);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, Texture.defaultTexture);
-    gl.bindVertexArray(quadVertexArray);
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-    gl.bindVertexArray(null);
+    
+    // Restore cull face
+    gl.cullFace(gl.BACK);
 }
 
 function drawAllObjectsDepth(){
@@ -175,43 +161,30 @@ function updateUniforms(){
 }
 
 function setTextures(material){
-    if(material){
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, material.albedo);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, depthMap);
 
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, material.normal);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, material.albedo);
 
-        gl.activeTexture(gl.TEXTURE3);
-        gl.bindTexture(gl.TEXTURE_2D, material.roughness);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, material.normal);
 
-        gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, material.ao);
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, material.roughness);
 
-        gl.activeTexture(gl.TEXTURE5);
-        gl.bindTexture(gl.TEXTURE_2D, material.fresnel);
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, material.ao);
 
-    }else{
-        // Put default white texture
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
+    gl.activeTexture(gl.TEXTURE5);
+    gl.bindTexture(gl.TEXTURE_2D, material.fresnel);
 
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
-
-        gl.activeTexture(gl.TEXTURE3);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
-
-        gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
-
-        gl.activeTexture(gl.TEXTURE5);
-        gl.bindTexture(gl.TEXTURE_2D, MeshMaterial.defaultTexture);
-    }
     gl.activeTexture(gl.TEXTURE6);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.irradianceMap);
+    
     gl.activeTexture(gl.TEXTURE7);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.prefilterMap);
+    
     gl.activeTexture(gl.TEXTURE8);
     gl.bindTexture(gl.TEXTURE_2D, skybox.brdfLUTTexture);
 }

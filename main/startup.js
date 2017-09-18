@@ -3,7 +3,6 @@ var gl;
 // Shader programs
 var shaderProgram;
 var depthProgram;
-var quadProgram;
 
 // Shadowmap size
 var shadowSize = {SHADOW_WIDTH : 1024, SHADOW_HEIGHT : 1024};   // 640 * 480
@@ -13,10 +12,6 @@ var depthMapFBO;
 var depthMap;
 // Uniform to update shadow map location in fragment shader
 var shadowMapUniform;
-
-// Debug quads
-var quadVertexArray;
-var drawUniformDepthLocation;
 
 // Main canvas we're drawing in
 var canvas;
@@ -128,9 +123,6 @@ function start() {
             depthVaos.push(initVAO(verticesBuffer, verticesIndexBuffer));
         }
     }
-
-    // Debug quads
-    //initQuad();
 
     // Display GUI
     initGui();
@@ -495,22 +487,6 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     return vertexArray;
 }
 
-function initQuad(){
-    // Init quad shaders
-    quadProgram = initShaders(quad_vertex_shader, quad_fragment_shader);
-    material = new MeshMaterial();
-    mesh = new Mesh(material);
-    mesh.makePlan2(1.0);
-    var verticesBuffer          = gl.createBuffer();
-    var verticesIndexBuffer     = gl.createBuffer();
-    var verticesTexCoordsBuffer = gl.createBuffer();
-
-    // Initiate buffers
-    initBuffers(mesh, verticesBuffer, verticesIndexBuffer, false, verticesTexCoordsBuffer);
-    // Init VAO
-    quadVertexArray = initVAO(verticesBuffer, verticesIndexBuffer, false, verticesTexCoordsBuffer, true);
-}
-
 function initSkybox(src){
     new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(texture){
         createSkybox(texture);
@@ -554,7 +530,7 @@ function createSkybox(hdrTexture){
 
     initSkyboxShader();
     initIrradianceMap(shaderProgram);
-    specularInit();
+    initSpecularMaps();
 }
 
 function initIrradianceMap(prog){
@@ -617,7 +593,7 @@ function setCubemapUniforms(prog){
 }
 
 function configureFramebufferAndContext(res, src, srcType){
-    // Just frame buffer things
+    // Just frame buffer things => render to a render buffer
     var captureFBO = gl.createFramebuffer();
     var captureRBO = gl.createRenderbuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
@@ -655,7 +631,7 @@ function renderCubeMapFaces(viewUniform, cubeMap, vao, nbIndices, mip){
     }
 }
 
-function specularInit(){
+function initSpecularMaps(){
 
     // Create shader program
     var generatePrefilterMapProgram = initShaders(generate_skybox_vertex_shader, generate_prefilter_map_fragment_shader);
@@ -691,20 +667,26 @@ function specularInit(){
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.enable(gl.CULL_FACE);
 
-    brdfLutInit();
+    skybox.brdfLUTTexture = initBrdfLut();
 }
 
-function brdfLutInit(){
+function initBrdfLut(){
+    
+    // Create shader program
+    var brdfLUTProgram = initShaders(integrate_brdf_vertex_shader, integrate_brdf_fragment_shader);
+    gl.useProgram(brdfLUTProgram);
+
+    // Create 2D texture with attributes
+    var res = 512;
     var texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    var res = 512;
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, res, res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    // Just frame buffer things
+    // Just frame buffer things => render to a texture here
     var captureFBO = gl.createFramebuffer();
     var captureRBO = gl.createRenderbuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
@@ -712,53 +694,35 @@ function brdfLutInit(){
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, res, res);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0); 
 
-    var brdfLUTProgram = initShaders(integrate_brdf_vertex_shader, integrate_brdf_fragment_shader);
-    gl.useProgram(brdfLUTProgram);
-
+    // Update context, frame buffer writes to a texture
     gl.viewport(0, 0, res, res);
     gl.disable(gl.CULL_FACE);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-
+    // Create quad mesh
     material = new MeshMaterial();
     mesh = new Mesh(material);
-    mesh.m_positions = [
-        $V([-1, 1,0]),
-        $V([-1,-1,0]),
-        $V([ 1, 1,0]),
-        $V([ 1,-1,0])
-    ];
+    mesh.makeQuad();
 
-    mesh.m_UV = [
-        $V([0,1]),
-        $V([0,0]),
-        $V([1,1]),
-        $V([1,0])
-    ];
-
-    mesh.m_triangles = [
-        $V([2,0,1]),
-        $V([2,1,3])
-    ];
-
+    // Init quad VAO
     var verticesBuffer          = gl.createBuffer();
     var verticesIndexBuffer     = gl.createBuffer();
     var verticesTexCoordsBuffer = gl.createBuffer();
-    // Initiate buffers
     initBuffers(mesh, verticesBuffer, verticesIndexBuffer, false, verticesTexCoordsBuffer);
-    // Init VAO
-    quadVertexArray = initVAO(verticesBuffer, verticesIndexBuffer, false, verticesTexCoordsBuffer, true);
+    var quadVertexArray = initVAO(verticesBuffer, verticesIndexBuffer, false, verticesTexCoordsBuffer, true);
     
+    // Draw onto quad
     gl.bindVertexArray(quadVertexArray);
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
     gl.bindVertexArray(null);
 
+    // Restore context
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.enable(gl.CULL_FACE);
 
-    skybox.brdfLUTTexture = texture;
-  
+    // At last, bind texture
+    return texture;
 }
 
 function initShadowMapFrameBuffer(){

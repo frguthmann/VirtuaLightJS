@@ -268,35 +268,25 @@ class Mesh {
         }
     }
 
-    makeSphere(res){
-        this.clear();
-        res = 4.0;
-        for(var a=0; a<res; a++){
+    makeQuad(){
+        this.m_positions = [
+            $V([-1, 1,0]),
+            $V([-1,-1,0]),
+            $V([ 1, 1,0]),
+            $V([ 1,-1,0])
+        ];
 
-            for(var b=0; b<res; b++){
+        this.m_UV = [
+            $V([0,1]),
+            $V([0,0]),
+            $V([1,1]),
+            $V([1,0])
+        ];
 
-                var phi   = a * Math.PI/(res-1.0);
-                var theta = b * Math.PI*2/(res-1.0);
-
-                // Position
-                var pos = {x : 0.0, y : 0.0, z : 0.0};
-                this.polar2Cartesian(theta,phi,1.0,pos);
-
-                this.m_positions.push($V([pos.x, pos.y, pos.z]));
-
-                this.m_triangles.push($V([a*res + b, a*res + b + res, a*res + (b+1.0)%res]));
-                this.m_triangles.push($V([a*res + b + res, a*res + res + (b + 1.0)%res, a*res + (b+1.0)%res]));
-
-                console.log(a*res + b + res);
-
-                this.m_normals.push($V([pos.x, pos.y, pos.z]));
-
-
-                this.m_UV.push($V([a / res, b / res]));
-
-            }
-        }
-        this.recomputeNormalsSimple();
+        this.m_triangles = [
+            $V([2,0,1]),
+            $V([2,1,3])
+        ];
     }
 
     polar2Cartesian (phi, theta, r, pos) {

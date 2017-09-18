@@ -68,7 +68,7 @@ function drawSkybox(){
     gl.disable(gl.CULL_FACE);
     // Enable environnement map
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.prefilterMap);
 
     // Update uniforms
     gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix.inverse())));

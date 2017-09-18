@@ -547,7 +547,7 @@ function createSkybox(hdrTexture){
     // Computing the cubeMap textures
     var generateSkyboxProgram = initShaders(generate_skybox_vertex_shader, generate_skybox_fragment_shader);
     gl.useProgram(generateSkyboxProgram);  
-    skybox.envCubemap = renderToCubeMap(generateSkyboxProgram, hdrTexture, gl.TEXTURE_2D, skybox.res, skybox.vao, skybox.mesh);
+    skybox.envCubemap = renderToCubeMap(generateSkyboxProgram, hdrTexture, gl.TEXTURE_2D, skybox.res, skybox.vao, skybox.mesh.m_triangles.length * 3);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
@@ -561,7 +561,7 @@ function initIrradianceMap(prog){
     var irradianceMapRes = 32;
     var generateIrradianceMapProgram = initShaders(generate_skybox_vertex_shader, generate_irradiance_map_fragment_shader);
     gl.useProgram(generateIrradianceMapProgram);
-    skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh);
+    skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh.m_triangles.length * 3);
 }
 
 function initSkyboxShader(){
@@ -575,7 +575,48 @@ function initSkyboxShader(){
     skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
 }
 
-function renderToCubeMap(prog, src, srcType, res, vao, mesh){
+function renderToCubeMap(prog, src, srcType, res, vao, nbIndices){
+    // Setup cubemap texture parameters
+    var cubeMap = generateCubemapTexture(res, gl.LINEAR);
+    // Set uniforms
+    var viewUniform = setCubemapUniforms(prog);
+    // Init frame buffers and source texture
+    configureFramebufferAndContext(res, src, srcType);
+    // Actual render on each face
+    renderCubeMapFaces(viewUniform, cubeMap, vao, nbIndices, 0);
+    // Restore context
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.enable(gl.CULL_FACE);
+    return cubeMap;
+}
+
+function generateCubemapTexture(res, minFilter){
+    var cubeMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMap);
+    for (var i = 0; i < 6; ++i)
+    {
+        // This is probably poorly done, could be optimized
+        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, res, res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+    }
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    return cubeMap;
+}
+
+function setCubemapUniforms(prog){
+    var projUniform = gl.getUniformLocation(prog, "uPMatrix");
+    var environmentMapUniform = gl.getUniformLocation(prog, "environmentMap");
+    var viewUniform = gl.getUniformLocation(prog, "view");
+    var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0); 
+    gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
+    gl.uniform1i(environmentMapUniform, 0);
+    return viewUniform; 
+}
+
+function configureFramebufferAndContext(res, src, srcType){
     // Just frame buffer things
     var captureFBO = gl.createFramebuffer();
     var captureRBO = gl.createRenderbuffer();
@@ -584,35 +625,16 @@ function renderToCubeMap(prog, src, srcType, res, vao, mesh){
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, res, res);
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);  
 
-    // Setup cubemap texture parameters
-    var envCubemap = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, envCubemap);
-    for (var i = 0; i < 6; ++i)
-    {
-        // This is probably poorly done, could be optimized
-        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, res, res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
-    }
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-    // Set uniforms
-    var projUniform = gl.getUniformLocation(prog, "uPMatrix");
-    var environmentMapUniform = gl.getUniformLocation(prog, "environmentMap");
-    var viewUniform = gl.getUniformLocation(prog, "view");
-    var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0); 
-    gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
-    gl.uniform1i(environmentMapUniform, 0);   
-
     // Configure context for cube rendering
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(srcType, src);
     gl.viewport(0, 0, res, res); // don't forget to configure the viewport to the capture dimensions.
     gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
     gl.disable(gl.CULL_FACE);
+    return captureRBO;
+}
 
+function renderCubeMapFaces(viewUniform, cubeMap, vao, nbIndices, mip){
     var captureDirections = [ 
         makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
         makeLookAtVector($V([0.0, 0.0, 0.0]), $V([-1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
@@ -621,104 +643,55 @@ function renderToCubeMap(prog, src, srcType, res, vao, mesh){
         makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0,  1.0]), $V([0.0, -1.0,  0.0])),
         makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0, -1.0]), $V([0.0, -1.0,  0.0]))
     ];
-
-    // Actual render on each face
     for (var i = 0; i < 6; ++i)
     {
         gl.uniformMatrix4fv(viewUniform, false, new Float32Array(flattenObject(captureDirections[i])));
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
-                               gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+                               gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, cubeMap, mip);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.bindVertexArray(vao);
-        gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, nbIndices, gl.UNSIGNED_SHORT, 0);
         gl.bindVertexArray(null);
     }
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.enable(gl.CULL_FACE);
-    return envCubemap;
 }
 
 function specularInit(){
-    skybox.prefilterMap = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.prefilterMap);
-    var res = 256;
-    for (var i = 0; i < 6; ++i)
-    {
-        // This is probably poorly done, could be optimized
-        gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.RGB, res, res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
-    }
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_R, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
-
+    // Create shader program
     var generatePrefilterMapProgram = initShaders(generate_skybox_vertex_shader, generate_prefilter_map_fragment_shader);
     gl.useProgram(generatePrefilterMapProgram);  
 
+    // Generate texture and mip_maps
+    var res = 256;
+    skybox.prefilterMap = generateCubemapTexture(res, gl.LINEAR_MIPMAP_LINEAR);
+    gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+
     // Set uniforms
-    var projUniform = gl.getUniformLocation(generatePrefilterMapProgram, "uPMatrix");
-    var environmentMapUniform = gl.getUniformLocation(generatePrefilterMapProgram, "environmentMap");
-    var viewUniform = gl.getUniformLocation(generatePrefilterMapProgram, "view");
+    var viewUniform = setCubemapUniforms(generatePrefilterMapProgram);
     var roughnesUniform = gl.getUniformLocation(generatePrefilterMapProgram, "roughness");
-    var captureProjection = makePerspective(90.0, 1.0, 0.48, 10.0); 
-    gl.uniformMatrix4fv(projUniform, false, new Float32Array(flattenObject(captureProjection)));
-    gl.uniform1i(environmentMapUniform, 0);
     gl.uniform1f(gl.getUniformLocation(generatePrefilterMapProgram, "resolution"), skybox.res); 
 
-    // Just frame buffer things
-    var captureFBO = gl.createFramebuffer();
-    var captureRBO = gl.createRenderbuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, captureRBO);  
-
-    // Configure context for cube rendering
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
-    gl.disable(gl.CULL_FACE);
-
-    var captureDirections = [ 
-        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
-        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([-1.0,  0.0,  0.0]), $V([0.0, -1.0,  0.0])),
-        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0, -1.0,  0.0]), $V([0.0,  0.0, -1.0])),
-        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  1.0,  0.0]), $V([0.0,  0.0,  1.0])),
-        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0,  1.0]), $V([0.0, -1.0,  0.0])),
-        makeLookAtVector($V([0.0, 0.0, 0.0]), $V([ 0.0,  0.0, -1.0]), $V([0.0, -1.0,  0.0]))
-    ];
-
+    // Init frame buffers and source texture
+    var captureRBO = configureFramebufferAndContext(res, skybox.envCubemap, gl.TEXTURE_CUBE_MAP);
     
+    // Generate a texture for each Mip level
     var maxMipLevels = 5;
     for (var mip = 0; mip < maxMipLevels; ++mip){
         // reisze framebuffer according to mip-level size.
-        var mipWidth  = res * Math.pow(0.5, mip);
-        var mipHeight = res * Math.pow(0.5, mip);
+        var mipRes  = res * Math.pow(0.5, mip);
         gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, mipWidth, mipHeight);
-        gl.viewport(0, 0, mipWidth, mipHeight);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, mipRes, mipRes);
+        gl.viewport(0, 0, mipRes, mipRes);
 
         var roughness = mip / (maxMipLevels - 1);
         gl.uniform1f(roughnesUniform, roughness); 
         // Actual render on each face
-        for (var i = 0; i < 6; ++i)
-        {
-            gl.uniformMatrix4fv(viewUniform, false, new Float32Array(flattenObject(captureDirections[i])));
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
-                                   gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, skybox.prefilterMap, mip);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            gl.bindVertexArray(skybox.vao);
-            gl.drawElements(gl.TRIANGLES, skybox.mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
-            gl.bindVertexArray(null);
-        }
+        renderCubeMapFaces(viewUniform, skybox.prefilterMap, skybox.vao, skybox.mesh.m_triangles.length * 3, mip);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.enable(gl.CULL_FACE);
 
     brdfLutInit();
-
 }
 
 function brdfLutInit(){
@@ -728,7 +701,7 @@ function brdfLutInit(){
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, res, res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); //LINEAR_MIPMAP_LINEAR
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     // Just frame buffer things

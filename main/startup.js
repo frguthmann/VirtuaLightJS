@@ -114,17 +114,19 @@ function start() {
 
     // Create VAOs and data buffers
     for(var i=0; i<entities.length; i++){
-        var verticesBuffer          = gl.createBuffer();
-        var verticesIndexBuffer     = gl.createBuffer();
-        var verticesNormalBuffer    = entities[i].mesh.m_normals.length > 0 ? gl.createBuffer() : false;
-        var verticesTexCoordsBuffer = entities[i].mesh.m_UV.length > 0 ? gl.createBuffer() : false;
-    
-        // Initiate buffers
-        initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
-        // Init VAO
-        vaos.push(initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, true));
-        // Init DepthVAO
-        depthVaos.push(initVAO(verticesBuffer, verticesIndexBuffer));
+        if(entities[i].mesh){
+            var verticesBuffer          = gl.createBuffer();
+            var verticesIndexBuffer     = gl.createBuffer();
+            var verticesNormalBuffer    = entities[i].mesh.m_normals.length > 0 ? gl.createBuffer() : false;
+            var verticesTexCoordsBuffer = entities[i].mesh.m_UV.length > 0 ? gl.createBuffer() : false;
+        
+            // Initiate buffers
+            initBuffers(entities[i].mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer);
+            // Init VAO
+            vaos.push(initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer, true));
+            // Init DepthVAO
+            depthVaos.push(initVAO(verticesBuffer, verticesIndexBuffer));
+        }
     }
 
     // Debug quads
@@ -311,11 +313,11 @@ function loadObjects(){
                 fresnel     : "https://i.imgur.com/GPTXRqV.png",
             },
             gold : {
-                albedo      : "textures/gold/gold_BC2.png",
-                normal      : "textures/gold/gold_N.png",
-                roughness   : "textures/gold/gold_R.png",
+                albedo      : "https://i.imgur.com/YXOv2dd.png",
+                normal      : "https://i.imgur.com/692eM2G.png",
+                roughness   : "https://i.imgur.com/iHru905.png",
                 ao          : undefined,
-                fresnel     : "textures/gold/gold_M.png",
+                fresnel     : "https://i.imgur.com/drvFyQF.png",
             }
         };
     }
@@ -840,8 +842,8 @@ function createMatrixTransforms(prog, uboIdx){
 
 function createLights(prog, uboIdx){
     // Actual lights of the scene
-    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,1]),0,1,1,1,lights.length));
-    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,0.5]),0,1,1,1,lights.length));
+    lights.push(new LightSource($V([2.75,5,-2.75,1]),$V([1,1,1]),30,1,1,1,lights.length));
+    lights.push(new LightSource($V([-2.75,5,-2.75,1]),$V([1,1,1]),30,1,1,1,lights.length));
     lights.push(new LightSource($V([11.9,7.1,8.8,1]),$V([0.996,0.945,0.878]),200,1,1,1,lights.length));
     var length = lights.length;
 
@@ -881,6 +883,10 @@ function enableLightDisplay(lightPos, i){
     
     var mesh = new Mesh();
     mesh.makeCube(cubeSize, false);
+    // Don't display the last light, it is a light embedded in the environnement
+    if(i==lights.length-1){
+        mesh = undefined;
+    }
     var entity = new Entity(mesh, "Light " + i, Matrix.Translation(Vector.create(lightPos)));
     entities.push(entity);
 }

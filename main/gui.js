@@ -65,7 +65,8 @@ function initGui() {
     // LIGHTS FOLDER
     var f1 = gui.addFolder("Lights");
     f1.open();
-    for(var i=entities.length-lights.length; i<entities.length; i++){
+    // Don't touch the last light, it is embedded in the environnement
+    for(var i=entities.length-lights.length; i<entities.length-1; i++){
 
         var idx = i - (entities.length - lights.length);
         var f2 = f1.addFolder(entities[i].name);

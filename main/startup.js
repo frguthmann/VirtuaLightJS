@@ -364,7 +364,8 @@ function loadObjects(){
     entities[entities.length-1].scale = 1.5;
 
     // Test cube with uniform values
-    material = new MeshMaterial(mats.gold);  //mats.gold
+    material = new MeshMaterial(mats.gold);
+    material.generateTextures([0.996,0.805,0.406],0.25,1.0);
     mesh = new Mesh(material);
     mesh.loadPly(spherejs);
     entities.push(new Entity(mesh, "Sphere", Matrix.I(4)));
@@ -385,7 +386,7 @@ function PBRScale(nrRows, nrColumns, model){
         {
             var bRoughness = Math.min(Math.max(col / nrColumns, 0.05), 1.0);
             material = new MeshMaterial();
-            material.generateTextures([1.0,0.0,0.0],bRoughness,bFresnel);
+            material.generateTextures([0.996,0.805,0.406],bRoughness,bFresnel);
             mesh = new Mesh(material);
             mesh.loadPly(model);
             entities.push(new Entity(mesh, "Ball - " + row + "" + col, Matrix.I(4)));

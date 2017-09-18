@@ -101,7 +101,7 @@ function start() {
     gl.useProgram(shaderProgram);
 
     // Init skybox / Irradiance
-    initSkybox("ibl/Arches_E_PineTree/Arches_E_PineTree_3k.hdr");
+    initSkybox("ibl/desert/desert.hdr");
 
     // Set texture uniforms
     setSamplerUniforms();
@@ -263,6 +263,13 @@ function loadObjects(){
                 roughness   : "textures/rust/rust_R.png",
                 ao          : "textures/rust/rust_AO.png",
                 fresnel     : "textures/rust/rust_M.png",
+            },
+            gold : {
+                albedo      : "textures/gold/gold_BC2.png",
+                normal      : "textures/gold/gold_N.png",
+                roughness   : "textures/gold/gold_R.png",
+                ao          : undefined,
+                fresnel     : "textures/gold/gold_M.png",
             }
         };
     }else{
@@ -302,6 +309,13 @@ function loadObjects(){
                 roughness   : "https://i.imgur.com/9E3kUMv.png",
                 ao          : "https://i.imgur.com/2Ozqith.png",
                 fresnel     : "https://i.imgur.com/GPTXRqV.png",
+            },
+            gold : {
+                albedo      : "textures/gold/gold_BC2.png",
+                normal      : "textures/gold/gold_N.png",
+                roughness   : "textures/gold/gold_R.png",
+                ao          : undefined,
+                fresnel     : "textures/gold/gold_M.png",
             }
         };
     }
@@ -334,9 +348,6 @@ function loadObjects(){
 
     // Create a plan underneath both objects
     material = new MeshMaterial(mats.floor);
-    /*material = new MeshMaterial( shaderProgram,
-        "textures/brick/brick_BC.jpg",
-        "textures/brick/brick_N.jpg");*/
     mesh = new Mesh(material);
     mesh.makePlan(3.0, 50);
     entities.push(new Entity(mesh, "Floor", Matrix.I(4)));
@@ -349,22 +360,36 @@ function loadObjects(){
     entities[entities.length-1].pos = [1.5,1.5,-3];
     entities[entities.length-1].rot = [0,90];
     entities[entities.length-1].scale = 1.5;
-    /*entities[entities.length-1].pos = [0,0,3.01]
-    entities[entities.length-1].rot = [0,90];
-    entities[entities.length-1].scale = 5.0;*/
 
     // Test cube with uniform values
-    /*material = new MeshMaterial();
-    //material.generateTextures([1.0,0.71,0.29],0.1,0.91);
-    material.generateTextures([1.0,0.766,0.336],0.062,1.0);
+    material = new MeshMaterial(mats.gold);  //mats.gold
     mesh = new Mesh(material);
-    mesh.loadOFF(rhinojs);
-    //mesh.makePlan2(1.0, true);
-    //mesh.loadPly(balljs);
-    //mesh.computeCubeUV();
-    entities.push(new Entity(mesh, "Test Cube", Matrix.I(4)));
-    entities[entities.length-1].pos = [0,1.5,2];
-    entities[entities.length-1].scale = 0.5*/
+    mesh.loadPly(spherejs);
+    entities.push(new Entity(mesh, "Sphere", Matrix.I(4)));
+    entities[entities.length-1].pos = [0,0.5,2];
+    entities[entities.length-1].rot = [0,90];
+    entities[entities.length-1].scale = 0.5;
+
+    //PBRScale(7, 7, spherejs)
+    
+}
+
+function PBRScale(nrRows, nrColumns, model){
+    var spacing = 2.5;
+    for (var row = 0; row < nrRows; ++row)
+    {
+        var bFresnel = row / nrRows;
+        for (var col = 0; col < nrColumns; ++col)
+        {
+            var bRoughness = Math.min(Math.max(col / nrColumns, 0.05), 1.0);
+            material = new MeshMaterial();
+            material.generateTextures([1.0,0.0,0.0],bRoughness,bFresnel);
+            mesh = new Mesh(material);
+            mesh.loadPly(model);
+            entities.push(new Entity(mesh, "Ball - " + row + "" + col, Matrix.I(4)));
+            entities[entities.length-1].pos = [(col - (nrColumns / 2)) * spacing, (row - (nrRows / 2)) * spacing ,-2];
+        }
+    }
 }
 
 function initUBOs(){
@@ -487,8 +512,9 @@ function initSkybox(src){
     new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(texture){
         createSkybox(texture);
     });
-    skybox.irradianceMap = initializeCubeMap();
-    skybox.prefilterMap  = initializeCubeMap();
+    skybox.irradianceMap  = initializeCubeMap();
+    skybox.prefilterMap   = initializeCubeMap();
+    skybox.brdfLUTTexture = Texture.generateTextureFromData(new Uint8Array([0.0, 0.0, 0.0]), 1, 1, false, gl.REPEAT, gl.NEAREST);
 }
 
 function initializeCubeMap(){
@@ -697,8 +723,8 @@ function specularInit(){
 }
 
 function brdfLutInit(){
-    skybox.brdfLUTTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, skybox.brdfLUTTexture);
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     var res = 512;
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, res, res, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -712,14 +738,14 @@ function brdfLutInit(){
     gl.bindFramebuffer(gl.FRAMEBUFFER, captureFBO);
     gl.bindRenderbuffer(gl.RENDERBUFFER, captureRBO);
     gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, res, res);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, skybox.brdfLUTTexture, 0); 
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0); 
 
     var brdfLUTProgram = initShaders(integrate_brdf_vertex_shader, integrate_brdf_fragment_shader);
     gl.useProgram(brdfLUTProgram);
 
     gl.viewport(0, 0, res, res);
     gl.disable(gl.CULL_FACE);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, skybox.brdfLUTTexture, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 
@@ -758,6 +784,8 @@ function brdfLutInit(){
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.enable(gl.CULL_FACE);
+
+    skybox.brdfLUTTexture = texture;
   
 }
 
@@ -812,8 +840,9 @@ function createMatrixTransforms(prog, uboIdx){
 
 function createLights(prog, uboIdx){
     // Actual lights of the scene
-    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,1]),100,1,1,1,lights.length));
-    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,0.5]),100,1,1,1,lights.length));
+    lights.push(new LightSource($V([-5,5,5,1]),$V([1,1,1]),0,1,1,1,lights.length));
+    lights.push(new LightSource($V([5,5,-5,1]),$V([1,1,0.5]),0,1,1,1,lights.length));
+    //lights.push(new LightSource($V([11.9,7.1,8.8,1]),$V([0.996,0.945,0.878]),200,1,1,1,lights.length));
     var length = lights.length;
 
     // Filling dummy data for up to 5 lights because the UBO / shader expects 5 max

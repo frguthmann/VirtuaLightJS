@@ -33,7 +33,8 @@ function computeDepthMap(){
     // Activate front face culling to remove shadowmaps artifacts
     gl.cullFace(gl.FRONT);
     // Generate light view-projection matrix
-    var lightSpaceMatrix = makeLookAt(lights[0].position.e(1), lights[0].position.e(2), lights[0].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+    var idx = 0;//lights.length - 1;
+    var lightSpaceMatrix = makeLookAt(lights[idx].position.e(1), lights[idx].position.e(2), lights[idx].position.e(3), 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     depthVP = camera.orthoProj.multiply(lightSpaceMatrix);
     // Update viewport to match texture size
     gl.viewport(0,0, shadowSize.SHADOW_WIDTH, shadowSize.SHADOW_HEIGHT);

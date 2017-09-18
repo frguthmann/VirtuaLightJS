@@ -560,9 +560,8 @@ function createSkybox(hdrTexture){
 function initIrradianceMap(prog){
     var irradianceMapRes = 32;
     var generateIrradianceMapProgram = initShaders(generate_skybox_vertex_shader, generate_irradiance_map_fragment_shader);
-    gl.useProgram(generateIrradianceMapProgram);   
-    gl.uniform1i(gl.getUniformLocation(generateIrradianceMapProgram, 'res'), irradianceMapRes);
-    skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh, 'timestamp');
+    gl.useProgram(generateIrradianceMapProgram);
+    skybox.irradianceMap = renderToCubeMap(generateIrradianceMapProgram, skybox.envCubemap, gl.TEXTURE_CUBE_MAP, irradianceMapRes, skybox.vao, skybox.mesh);
 }
 
 function initSkyboxShader(){
@@ -576,7 +575,7 @@ function initSkyboxShader(){
     skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
 }
 
-function renderToCubeMap(prog, src, srcType, res, vao, mesh, placeholder, uniform){
+function renderToCubeMap(prog, src, srcType, res, vao, mesh){
     // Just frame buffer things
     var captureFBO = gl.createFramebuffer();
     var captureRBO = gl.createRenderbuffer();
@@ -630,9 +629,6 @@ function renderToCubeMap(prog, src, srcType, res, vao, mesh, placeholder, unifor
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
                                gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        if(uniform){    
-            gl.uniform1i(gl.getUniformLocation(prog, uniform), Date.now());
-        }
         gl.bindVertexArray(vao);
         gl.drawElements(gl.TRIANGLES, mesh.m_triangles.length * 3, gl.UNSIGNED_SHORT, 0);
         gl.bindVertexArray(null);
@@ -645,7 +641,7 @@ function renderToCubeMap(prog, src, srcType, res, vao, mesh, placeholder, unifor
 function specularInit(){
     skybox.prefilterMap = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.prefilterMap);
-    var res = 128;
+    var res = 256;
     for (var i = 0; i < 6; ++i)
     {
         // This is probably poorly done, could be optimized

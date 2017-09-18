@@ -4,14 +4,15 @@ precision highp float;
 precision lowp int;
 
 const float M_PI = 3.14159265359;
-const int NB_SAMPLE = 16000;
+const uint NB_SAMPLE = 16000u;
 
 out vec4 FragColor;
 in vec3 localPos;
 
 uniform samplerCube environmentMap;
-uniform int timestamp;
-uniform int res;
+
+float RadicalInverse_VdC(uint bits); 
+vec2 Hammersley(uint i, uint N);
 
 float noise2(vec2 co);
 
@@ -26,37 +27,38 @@ void main()
     vec3 right = normalize(cross(up, normal));
     up         = cross(normal, right);
 
-    //float seed = 43758.5453;
-    vec2 seed = vec2(float(NB_SAMPLE) * (gl_FragCoord.y * float(res) + gl_FragCoord.x), float(timestamp));
-
     // Take nb_sample samples
-    for(int i = 0; i < NB_SAMPLE; i++)
+    for(uint i = 0u; i < NB_SAMPLE; i++)
     {
+        vec2 rand2 = Hammersley(i, NB_SAMPLE);
         // Randomly generate theta and phi for a uniform distribution over the sphere
-        float theta = acos(sqrt(1.0-noise2(seed)));         // acos[0,1] => theta in [Pi/2, 0]
-        seed.x++;
-        float phi = noise2(seed) * 2.0 * M_PI;    // phi in [0,2*Pi]
-        seed.y++;
+        float cosTheta = sqrt(1.0-rand2.x);     // acos[0,1] => theta in [Pi/2, 0]
+        float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+        float phi = rand2.y * 2.0 * M_PI;       // phi in [0,2*Pi]
         // spherical to cartesian (in tangent space)
-        vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
+        vec3 tangentSample = vec3(sinTheta * cos(phi),  sinTheta * sin(phi), cosTheta);
         // tangent space to world
         vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal; 
 
-        irradiance += texture(environmentMap, sampleVec).rgb * cos(theta) * sin(theta);
+        irradiance += texture(environmentMap, sampleVec).rgb * cosTheta * sinTheta;
     }
     irradiance = M_PI * irradiance * (1.0 / float(NB_SAMPLE));
 
     FragColor = vec4(irradiance, 1.0);
 }
 
-// http://byteblacksmith.com/improvements-to-the-canonical-one-liner-glsl-noise2-for-opengl-es-2-0/
-float noise2(vec2 co)
+float RadicalInverse_VdC(uint bits) 
 {
-    highp float a = 12.9898;
-    highp float b = 78.233;
-    highp float c = 43758.5453;
-    highp float dt= dot(co.xy ,vec2(a,b));
-    highp float sn= mod(dt,3.14);
-    return fract(sin(sn) * c);
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+vec2 Hammersley(uint i, uint N)
+{
+    return vec2(float(i)/float(N), RadicalInverse_VdC(i));
 }
 `;

@@ -56,7 +56,7 @@ vec3 fresnelSchlick(vec3 incidentVector, vec3 excidentVector, vec3 f0);
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness);
 vec4 getLightColor(LightSource l, vec3 pos);
 float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir);
-vec3 getFilteredTexel(sampler2D texture, vec2 off);
+vec3 tex2DBlaiseGuthmann(sampler2D texture, vec2 off);
 vec2 SampleSphericalMap(vec3 v);
 void testIBL(int face);
 
@@ -314,7 +314,7 @@ void testIBL(int face){
 }
 
 // Blaise-Guthmann texture filtering
-vec3 getFilteredTexel(sampler2D textureMap, vec2 off){
+vec3 tex2DBlaiseGuthmann(sampler2D textureMap, vec2 off){
     //vec2 off = 2.999 * texelSize / 2.0;
     //vec2 off = vTexCoords;
     vec2 texelSize = 1.0 / vec2(textureSize(textureMap, 0));

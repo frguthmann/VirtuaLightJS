@@ -86,6 +86,9 @@ function keyboardHandler(e) {
         case 109:
             camera.zoom(1.0);
         break;
+        case 123:
+            console.log("Hey there, welcome to the console :)");
+        break;
         default:
             console.log("You pressed: " + e.keyCode);
         break;

@@ -112,4 +112,5 @@ function handleFullscreenChange(){
     }
     // Update aspect ratio of projection matrix
     pMatrix = makePerspective(camera.fovAngle, canvas.width / canvas.height , camera.nearPlane, camera.farPlane);
+    skybox.proj = makePerspective(camera.fovAngle, canvas.width / canvas.height , 1.0, camera.farPlane);
 }

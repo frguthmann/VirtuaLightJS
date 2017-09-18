@@ -54,7 +54,7 @@ var skybox = {
     projUniform     : 0,
     proj            : 0,
     vao             : 0,
-    res             : 512
+    res             : 1024
 }
 
 function start() {

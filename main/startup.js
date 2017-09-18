@@ -219,7 +219,7 @@ function drawSceneIfReady(){
 }
 
 function loadObjects(){
-    var debug = 1;
+    var debug = 0;
     if(debug){
         var mats = 
         {

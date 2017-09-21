@@ -121,18 +121,17 @@ void main(void) {
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - fresnel;
 
-    // No normal mapping for ambient light, it's weird otherwise
     vec3 irradiance = texture(environmentMap, normal).rgb;
-    vec3 ambiantDiffuse = kD * irradiance * albedo;
+    vec3 ambientDiffuse = kD * irradiance * albedo;
 
     const float MAX_REFLECTION_LOD = 4.0;
     vec3 reflectionVector = reflect(-excidentVector, normal);
     vec3 prefilteredColor = textureLod(prefilterMap, reflectionVector,  roughness * MAX_REFLECTION_LOD).rgb;    
     vec2 brdf  = texture(brdfLUT, vec2(max(dot(normal, excidentVector), 0.0), roughness)).rg;
-    vec3 ambiantSpecular = prefilteredColor * (kS * brdf.x + brdf.y);
+    vec3 ambientSpecular = prefilteredColor * (kS * brdf.x + brdf.y);
     
     float ambientIntensity = 1.0;
-    vec3 ambient = (ambiantDiffuse + ambiantSpecular) * ao * ambientIntensity;
+    vec3 ambient = (ambientDiffuse + ambientSpecular) * ao * ambientIntensity;
 
     // Shadow computation
     vec3 lightDir = normalize(u_perPass.lights[nbLights-1].position-pos);

@@ -86,7 +86,7 @@ void main(void) {
     
     int nbLights = int(u_perPass.nbLights);
 
-    vec3 albedo = textureSize(albedoMap, 0).x > 1 ? pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2)) : tex2DBiLinear(albedoMap, vTexCoords).rgb;
+    vec3 albedo = pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2));
     float roughness = tex2DBiLinear(roughnessMap, vTexCoords).r;
     float ao = tex2DBiLinear(aoMap, vTexCoords).r;
     float fresnel = tex2DBiLinear(fresnelMap, vTexCoords).r;

@@ -8,6 +8,7 @@ out vec4 color;
 in vec3 localPos;
 
 uniform sampler2D environmentMap;
+uniform int isHDR;
 
 const vec2 invAtan = vec2(1.0 / (2.0 * M_PI), 1.0 / M_PI);
 vec2 SampleSphericalMap(vec3 v)
@@ -21,7 +22,7 @@ vec2 SampleSphericalMap(vec3 v)
 void main()
 {       
     vec2 uv = SampleSphericalMap(normalize(localPos)); // make sure to normalize localPos
-    vec3 tempColor = texture(environmentMap, uv).rgb;
+    vec3 tempColor = isHDR == 1 ? texture(environmentMap, uv).rgb : pow(texture(environmentMap, uv).rgb, vec3(2.2));
     
     color = vec4(tempColor, 1.0);
     //color = vec4 (0.0,1.0,0.0,1.0);

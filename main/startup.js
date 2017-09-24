@@ -52,6 +52,8 @@ var skybox = {
     program         : 0,
     viewUniform     : 0,
     projUniform     : 0,
+    gammaUniform    : 0,
+    exposureUniform : 0,
     proj            : 0,
     vao             : 0,
     res             : 1024
@@ -103,7 +105,8 @@ function start() {
     gl.useProgram(shaderProgram);
 
     // Init skybox / Irradiance
-    initSkybox("ibl/desert/desert.hdr");
+    //initSkybox("ibl/desert/desert.hdr", true);
+    initSkybox("ibl/hantel.jpg", false);
 
     // Set texture uniforms
     setSamplerUniforms();
@@ -499,9 +502,9 @@ function initVAO(verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, vert
     return vertexArray;
 }
 
-function initSkybox(src){
-    new Texture(src, true, gl.CLAMP_TO_EDGE, gl.LINEAR, function(texture){
-        createSkybox(texture);
+function initSkybox(src, isHDR){
+    new Texture(src, isHDR, gl.CLAMP_TO_EDGE, gl.LINEAR, function(texture){
+        createSkybox(texture, isHDR);
     });
     skybox.irradianceMap  = initializeCubeMap();
     skybox.prefilterMap   = initializeCubeMap();
@@ -520,7 +523,7 @@ function initializeCubeMap(){
     return texture;
 }
 
-function createSkybox(hdrTexture){
+function createSkybox(texture, isHDR){
 
     // Skybox geometry
     skybox.mesh = new Mesh();
@@ -534,8 +537,9 @@ function createSkybox(hdrTexture){
 
     // Computing the cubeMap textures
     var generateSkyboxProgram = initShaders(generate_skybox_vertex_shader, generate_skybox_fragment_shader);
-    gl.useProgram(generateSkyboxProgram);  
-    skybox.envCubemap = renderToCubeMap(generateSkyboxProgram, hdrTexture, gl.TEXTURE_2D, skybox.res, skybox.vao, skybox.mesh.m_triangles.length * 3);
+    gl.useProgram(generateSkyboxProgram);
+    gl.uniform1i(gl.getUniformLocation(generateSkyboxProgram, 'isHDR'), isHDR);  
+    skybox.envCubemap = renderToCubeMap(generateSkyboxProgram, texture, gl.TEXTURE_2D, skybox.res, skybox.vao, skybox.mesh.m_triangles.length * 3);
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, skybox.envCubemap);
     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
@@ -558,8 +562,13 @@ function initSkyboxShader(){
     gl.useProgram(skybox.program);  
     skybox.projUniform = gl.getUniformLocation(skybox.program, 'projection');
     skybox.proj = makePerspective(camera.fovAngle, canvas.clientWidth / canvas.clientHeight , 1.0, camera.farPlane);
+    skybox.gammaUniform = gl.getUniformLocation(skybox.program, 'gamma');
+    skybox.exposureUniform = gl.getUniformLocation(skybox.program, 'exposure');
     gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
     gl.uniform1i(gl.getUniformLocation(skybox.program, 'environmentMap'), 0);
+    gl.uniform1f(skybox.exposureUniform, rendering.exposure.value);
+    gl.uniform1f(skybox.gammaUniform, rendering.gamma.value);
+    
     skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
 }
 

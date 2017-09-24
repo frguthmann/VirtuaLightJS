@@ -6,14 +6,14 @@ out vec4 FragColor;
 in vec3 localPos;
   
 uniform samplerCube environmentMap;
+uniform float gamma;
+uniform float exposure;
   
 void main()
 {
     vec3 envColor = textureLod(environmentMap, localPos, 1.0).rgb; 
-
-    float exposure = 1.5; // => should be a uniform
     envColor = vec3(1.0) - exp(-envColor * exposure);
-    envColor = pow(envColor, vec3(1.0/1.5));
+    envColor = pow(envColor, vec3(1.0/gamma));
   
     FragColor = vec4(envColor, 1.0);
 }

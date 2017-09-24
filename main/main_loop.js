@@ -67,6 +67,10 @@ function drawSkybox(){
     // Update uniforms
     gl.uniformMatrix4fv(skybox.viewUniform, false, new Float32Array(flattenObject(mvMatrix.inverse())));
     gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
+    if(rendering.hasChanged){
+        gl.uniform1f(skybox.exposureUniform, rendering.exposure.value);
+        gl.uniform1f(skybox.gammaUniform, rendering.gamma.value);
+    }
 
     // Bind VAO
     gl.bindVertexArray(skybox.vao);

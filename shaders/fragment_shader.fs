@@ -40,6 +40,9 @@ uniform samplerCube     prefilterMap;
 uniform sampler2D       brdfLUT;
 
 uniform vec3 camPos;
+uniform float exposure;
+uniform float gamma;
+uniform float ambientIntensity;
 
 in highp vec4 worldPos ;
 in highp vec3 vNormal;
@@ -86,7 +89,7 @@ void main(void) {
     
     int nbLights = int(u_perPass.nbLights);
 
-    vec3 albedo = pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(2.2));
+    vec3 albedo = pow(tex2DBiLinear(albedoMap, vTexCoords).rgb, vec3(gamma));
     float roughness = tex2DBiLinear(roughnessMap, vTexCoords).r;
     float ao = tex2DBiLinear(aoMap, vTexCoords).r;
     float fresnel = tex2DBiLinear(fresnelMap, vTexCoords).r;
@@ -130,27 +133,31 @@ void main(void) {
     vec2 brdf  = texture(brdfLUT, vec2(max(dot(normal, excidentVector), 0.0), roughness)).rg;
     vec3 ambientSpecular = prefilteredColor * (kS * brdf.x + brdf.y);
     
-    float ambientIntensity = 1.0;
+    //float ambientIntensity = pow(1.0, 1.0/gamma);
     vec3 ambient = (ambientDiffuse + ambientSpecular) * ao * ambientIntensity;
 
     // Shadow computation
     vec3 lightDir = normalize(u_perPass.lights[nbLights-1].position-pos);
     float shadowFactor = ShadowCalculation(vFragPosLightSpace, vNorm, lightDir);
+    // Interpolation indicator gamma corrected
+    float inter = pow(u_perPass.lights[nbLights-1].intensity / 200.0, 1.0/gamma);
+    // Make shadows disapear as the lights goes dim
+    shadowFactor = shadowFactor == 1.0 ? shadowFactor : mix(1.0,shadowFactor,inter);
 
     vec3 resultingColor = (ambient + LO) * shadowFactor; 
 
     // Debug: print numbers
     /*vec2 vFontSize = vec2(8.0, 15.0);
     resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, 
-        camPos.x, 4.0, 10.0));*/
+        u_perPass.lights[nbLights-1].intensity / 200.0, 4.0, 10.0));*/
 
     // Tone mapping by reinhart operator
     //resultingColor = resultingColor / (resultingColor + vec3(1.0));
     // Exposure tone mapping
-    float exposure = 1.0; // => should be a uniform
+    //float exposure = 1.0; // => should be a uniform
     resultingColor = vec3(1.0) - exp(-resultingColor * exposure);
     // Gamma correction
-    resultingColor = pow(resultingColor, vec3(1.0/2.2));
+    resultingColor = pow(resultingColor, vec3(1.0/gamma));
     
     color = vec4(resultingColor,1.0);
 
@@ -233,7 +240,7 @@ vec4 getLightColor(LightSource l, vec3 pos){
         return vec4(0.0,0.0,0.0,1.0);
     }else{
         // Gamma correction to properly display light intensity influence lmao
-        float fact = pow(l.intensity / 150.0, 1.0/2.2);
+        float fact = pow(l.intensity / 150.0, 1.0/gamma);
         return vec4(l.color * fact, 1.0);
     }
 }
@@ -255,7 +262,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 lightDir)
         for(float y = -1.0; y <= 1.0; y+=0.5)
         {
             vec3 UVC = vec3(projCoords.xy + vec2(x, y) * texelSize, projCoords.z + bias);
-            shadow += texture(shadowMap, UVC) == 0.0 ? 0.1 : 1.0;        
+            shadow += texture(shadowMap, UVC) == 0.0 ? 0.05 : 1.0;        
         }    
     }
 
@@ -308,7 +315,7 @@ void testIBL(int face){
 
     vec3 envColor = texture(environmentMap, uvw).rgb; 
     envColor = envColor / (envColor + vec3(1.0));
-    envColor = pow(envColor, vec3(1.0/2.2));
+    envColor = pow(envColor, vec3(1.0/gamma));
     color = vec4(envColor, 1.0);
 }
 

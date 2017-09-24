@@ -57,6 +57,13 @@ var skybox = {
     res             : 1024
 }
 
+var rendering = {
+    exposure : {value : 1.0, uniform : undefined},
+    gamma : {value : 2.2, uniform : undefined},
+    ambientIntensity : {value : 1.0, uniform : undefined},
+    hasChanged : false
+}
+
 function start() {
 
     canvas = document.getElementById('glCanvas');
@@ -410,6 +417,12 @@ function initUBOs(){
 
     cameraUniform = gl.getUniformLocation(shaderProgram, 'camPos');
     gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
+    rendering.exposure.uniform = gl.getUniformLocation(shaderProgram, 'exposure');
+    rendering.gamma.uniform = gl.getUniformLocation(shaderProgram, 'gamma');
+    rendering.ambientIntensity.uniform = gl.getUniformLocation(shaderProgram, 'ambientIntensity');
+    gl.uniform1f(rendering.exposure.uniform, rendering.exposure.value);
+    gl.uniform1f(rendering.gamma.uniform, rendering.gamma.value);
+    gl.uniform1f(rendering.ambientIntensity.uniform, rendering.ambientIntensity.value);
 }
 
 function initBuffers(mesh, verticesBuffer, verticesIndexBuffer, verticesNormalBuffer, verticesTexCoordsBuffer) {
@@ -817,9 +830,11 @@ function enableLightDisplay(lightPos, i){
     var mesh = new Mesh();
     mesh.makeCube(cubeSize, false);
     // Don't display the last light, it is a light embedded in the environnement
+    var entityName = "Light " + i;
     if(i==lights.length-1){
         mesh = undefined;
+        entityName = "Sun";
     }
-    var entity = new Entity(mesh, "Light " + i, Matrix.Translation(Vector.create(lightPos)));
+    var entity = new Entity(mesh, entityName, Matrix.Translation(Vector.create(lightPos)));
     entities.push(entity);
 }

@@ -65,8 +65,7 @@ function initGui() {
     // LIGHTS FOLDER
     var f1 = gui.addFolder("Lights");
     f1.open();
-    // Don't touch the last light, it is embedded in the environnement
-    for(var i=entities.length-lights.length; i<entities.length-1; i++){
+    for(var i=entities.length-lights.length; i<entities.length; i++){
 
         var idx = i - (entities.length - lights.length);
         var f2 = f1.addFolder(entities[i].name);
@@ -101,6 +100,27 @@ function initGui() {
         guiObj.nbTriangles += entities[i].mesh.m_triangles.length;
     }
 
+    var renderingFolder = gui.addFolder('Rendering');
+    var exposure = renderingFolder.add(rendering.exposure, 'value', 0, 5).name("Exposure").onChange(function(){
+        rendering.hasChanged = true;
+    });
+    var gamma = renderingFolder.add(rendering.gamma, 'value', 0, 5).name("Gamma").onChange(function(){
+        rendering.hasChanged = true;
+    });
+    var ambientIntensity = renderingFolder.add(rendering.ambientIntensity, 'value', 0, 5).name("IBL Intensity").onChange(function(){
+        rendering.hasChanged = true;
+    });
+
+     // WIREFRAME MODE
+    renderingFolder.add(guiObj, 'sceneMode', [ 'Normal', 'Wireframe']).name("Render Mode (W)").onChange(function(value){
+        if(value == 'Normal'){
+            scene.mode = gl.TRIANGLES;
+        }else if(value == 'Wireframe'){
+            scene.mode = gl.LINES;
+        }
+    }).listen();
+
+
     var statsFolder = gui.addFolder('Scene Details');
     
     var nbVertices = statsFolder.add(guiObj, 'nbVertices').name("Vertices");
@@ -115,15 +135,6 @@ function initGui() {
     var shadowRes = statsFolder.add(guiObj, 'shadowRes').name("Shadow Res");
     shadowRes.domElement.style.pointerEvents = "none"
     shadowRes.domElement.style.opacity = 0.5;
-
-    // WIREFRAME MODE
-    gui.add(guiObj, 'sceneMode', [ 'Normal', 'Wireframe']).name("Render Mode (W)").onChange(function(value){
-        if(value == 'Normal'){
-            scene.mode = gl.TRIANGLES;
-        }else if(value == 'Wireframe'){
-            scene.mode = gl.LINES;
-        }
-    }).listen();
 
 };
 

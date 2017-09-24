@@ -158,6 +158,12 @@ function updateUniforms(){
     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
     // Send camera position too
     gl.uniform3fv(cameraUniform, flattenObject(camera.getPos()));
+
+    if(rendering.hasChanged){
+        gl.uniform1f(rendering.exposure.uniform, rendering.exposure.value);
+        gl.uniform1f(rendering.gamma.uniform, rendering.gamma.value);
+        gl.uniform1f(rendering.ambientIntensity.uniform, rendering.ambientIntensity.value);
+    }
 }
 
 function setTextures(material){

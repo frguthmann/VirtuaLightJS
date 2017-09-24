@@ -105,8 +105,8 @@ function start() {
     gl.useProgram(shaderProgram);
 
     // Init skybox / Irradiance
-    //initSkybox("ibl/desert/desert.hdr", true);
-    initSkybox("ibl/hantel.jpg", false);
+    initSkybox("ibl/desert/desert.hdr", true);
+    //initSkybox("ibl/hantel.jpg", false);
 
     // Set texture uniforms
     setSamplerUniforms();

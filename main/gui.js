@@ -93,6 +93,9 @@ function initGui() {
 
         f2.add(lights[idx], 'intensity', 0, 150).name('Intensity');
     }
+    f1.add(rendering.ambientIntensity, 'value', 0, 5).name("IBL Intensity").onChange(function(){
+        rendering.hasChanged = true;
+    });
 
     // SCENE INFOS
     for(var i=0; i<entities.length; i++){
@@ -101,13 +104,10 @@ function initGui() {
     }
 
     var renderingFolder = gui.addFolder('Rendering');
-    var exposure = renderingFolder.add(rendering.exposure, 'value', 0, 5).name("Exposure").onChange(function(){
+    renderingFolder.add(rendering.exposure, 'value', 0, 5).name("Exposure").onChange(function(){
         rendering.hasChanged = true;
     });
-    var gamma = renderingFolder.add(rendering.gamma, 'value', 0, 5).name("Gamma").onChange(function(){
-        rendering.hasChanged = true;
-    });
-    var ambientIntensity = renderingFolder.add(rendering.ambientIntensity, 'value', 0, 5).name("IBL Intensity").onChange(function(){
+    renderingFolder.add(rendering.gamma, 'value', 0, 5).name("Gamma").onChange(function(){
         rendering.hasChanged = true;
     });
 

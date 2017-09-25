@@ -217,7 +217,7 @@ vec3 microFacetSpecular(vec3 incidentVector, vec3 excidentVector, vec3 normal, v
         geometry = 1.0;
     }
 
-    float denominator = 4.0 * normDotInc * normDotExc + 0.001;
+    float denominator = 4.0 * normDotInc * normDotExc;
     vec3 numerator = distribution * fresnel * geometry;
 
     return numerator / denominator;

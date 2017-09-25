@@ -13,7 +13,7 @@ class Texture{
         }else{
             image = new HDRImage();
         }
-        image.crossOrigin = "anonymouss";
+        image.crossOrigin = "anonymous";
 
         image.onload=function() {
             var texture = Texture.generateTextureFromData(image, image.width, image.height, isHDR, wrap, filter);

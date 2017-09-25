@@ -117,7 +117,6 @@ void main(void) {
         vec3 radiance = vec3(u_perPass.lights[i].color) * getIntensityFromPosition(u_perPass.lights[i],pos);
 
         LO += (kD * albedo / M_PI + specular) * radiance * directionnalAttenuation;
-
     }
 
     vec3 kS = fresnelSchlickRoughness(max(dot(normal, excidentVector), 0.0), f0, roughness); 
@@ -151,8 +150,6 @@ void main(void) {
     resultingColor = mix( resultingColor, vec3(1.0, 1.0, 1.0), PrintValue( (gl_FragCoord.xy - vec2(0.0, 5.0)) / vFontSize, 
         u_perPass.lights[nbLights-1].intensity / 200.0, 4.0, 10.0));*/
 
-    // Tone mapping by reinhart operator
-    //resultingColor = resultingColor / (resultingColor + vec3(1.0));
     // Exposure tone mapping
     //float exposure = 1.0; // => should be a uniform
     resultingColor = vec3(1.0) - exp(-resultingColor * exposure);

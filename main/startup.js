@@ -352,6 +352,8 @@ function loadObjects(){
 
     // Create a plan underneath both objects
     material = new MeshMaterial(mats.floor);
+    // Override metallic property as it is fully metal by default
+    material.fresnel = Texture.generateTextureFromData(new Uint8Array(3).fill(0.0), 1, 1, false, gl.REPEAT, gl.NEAREST);
     mesh = new Mesh(material);
     mesh.makePlan(3.0, 50);
     entities.push(new Entity(mesh, "Floor", Matrix.I(4)));

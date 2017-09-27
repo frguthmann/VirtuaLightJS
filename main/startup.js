@@ -254,6 +254,13 @@ function loadObjects(){
                 ao          : "textures/default.png",
                 fresnel     : "models/sword/sword_M.jpg",
             },
+            gun : {
+                albedo      : "models/gun/gun_BC.jpg",
+                normal      : "models/gun/gun_N.jpg",
+                roughness   : "models/gun/gun_R.jpg",
+                ao          : "models/gun/gun_AO.jpg",
+                fresnel     : "models/gun/gun_M.jpg",
+            },
             floor : {
                 albedo      : "textures/floor/tiles_BC.png",
                 normal      : "textures/floor/tiles_N.png",
@@ -300,6 +307,13 @@ function loadObjects(){
                 ao          : "textures/default.png",
                 fresnel     : "https://i.imgur.com/CAFmeh3.jpg",
             },
+            gun : {
+                albedo      : "https://i.imgur.com/oUl6gOc.jpg",
+                normal      : "https://i.imgur.com/k2lXIbV.jpg",
+                roughness   : "https://i.imgur.com/XXZSrlS.jpg",
+                ao          : "https://i.imgur.com/2laTdDD.jpg",
+                fresnel     : "https://i.imgur.com/2te6r88.jpg",
+            },
             floor : {
                 albedo      : "https://i.imgur.com/hcI7jaA.jpg",
                 normal      : "https://i.imgur.com/j9DA0JB.png",
@@ -343,12 +357,21 @@ function loadObjects(){
     entities[entities.length-1].pos = [1.25,0.355,0];
     //entities[entities.length-1].scale = 0.1;
 
-    // Sword
-    material = new MeshMaterial(mats.sword);
+    // Gun
+    material = new MeshMaterial(mats.gun);
     mesh = new Mesh(material);
-    mesh.loadPly(swordjs);
-    entities.push(new Entity(mesh, "Sword", Matrix.I(4)));
-    entities[entities.length-1].pos = [0,1.8,-2];
+    mesh.loadPly(gunjs);
+    entities.push(new Entity(mesh, "Gun", Matrix.I(4)));
+    entities[entities.length-1].pos = [0,0.5,-2];
+
+    // Gold sphere
+    material = new MeshMaterial(mats.gold);
+    material.generateTextures([0.996,0.805,0.406],0.25,1.0);
+    mesh = new Mesh(material);
+    mesh.loadPly(spherejs);
+    entities.push(new Entity(mesh, "Gold Sphere", Matrix.I(4)));
+    entities[entities.length-1].pos = [0,0.5,2];
+    entities[entities.length-1].scale = 0.5;
 
     // Create a plan underneath both objects
     material = new MeshMaterial(mats.floor);
@@ -366,15 +389,6 @@ function loadObjects(){
     entities[entities.length-1].pos = [1.5,1.5,-3];
     entities[entities.length-1].rot = [0,90];
     entities[entities.length-1].scale = 1.5;
-
-    // Test cube with uniform values
-    material = new MeshMaterial(mats.gold);
-    material.generateTextures([0.996,0.805,0.406],0.25,1.0);
-    mesh = new Mesh(material);
-    mesh.loadPly(spherejs);
-    entities.push(new Entity(mesh, "Gold Sphere", Matrix.I(4)));
-    entities[entities.length-1].pos = [0,0.5,2];
-    entities[entities.length-1].scale = 0.5;
 
     //PBRScale(7, 7, spherejs)
     
@@ -562,16 +576,19 @@ function initSkyboxShader(){
     // Start skybox shader
     skybox.program = initShaders(skybox_vertex_shader, skybox_fragment_shader);
     gl.useProgram(skybox.program);  
-    skybox.projUniform = gl.getUniformLocation(skybox.program, 'projection');
+
     skybox.proj = makePerspective(camera.fovAngle, canvas.clientWidth / canvas.clientHeight , 1.0, camera.farPlane);
+
+    skybox.projUniform = gl.getUniformLocation(skybox.program, 'projection');
     skybox.gammaUniform = gl.getUniformLocation(skybox.program, 'gamma');
     skybox.exposureUniform = gl.getUniformLocation(skybox.program, 'exposure');
-    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
+    skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
+    
     gl.uniform1i(gl.getUniformLocation(skybox.program, 'environmentMap'), 0);
+    gl.uniformMatrix4fv(skybox.projUniform, false, new Float32Array(flattenObject(skybox.proj)));
     gl.uniform1f(skybox.exposureUniform, rendering.exposure.value);
     gl.uniform1f(skybox.gammaUniform, rendering.gamma.value);
     
-    skybox.viewUniform = gl.getUniformLocation(skybox.program, 'view');
 }
 
 function renderToCubeMap(prog, src, srcType, res, vao, nbIndices){

@@ -26,6 +26,8 @@ https://sketchfab.com/models/a6bdf1d11d714e07b9dd99dda02de965
 https://sketchfab.com/models/f91ad6cc72c84c6890462907a756a6c8
 - Withered Blade by French Baguette is licensed under CC Attribution (Sketchfab)
 https://sketchfab.com/models/7647daa204154718a4278e191638909e
+- Cerberus by Andrew Maximov
+http://artisaverb.info/PBT.html
 
 ## Textures
 

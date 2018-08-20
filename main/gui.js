@@ -4,7 +4,8 @@ var guiObj = {
     sceneMode : "Normal",
     nbVertices : 0,
     nbTriangles : 0,
-    shadowRes : "0 x 0" };
+    shadowRes : "0 x 0",
+    fullscreen : false};
 
 function initFPSCounter(){
     stats = new Stats();
@@ -135,6 +136,11 @@ function initGui() {
     var shadowRes = statsFolder.add(guiObj, 'shadowRes').name("Shadow Res");
     shadowRes.domElement.style.pointerEvents = "none"
     shadowRes.domElement.style.opacity = 0.5;
+
+    gui.add(guiObj, "fullscreen").name("Toggle Fullscreen").onChange(function(){
+        screenfull.toggle();
+        console.log(screenfull);
+    });
 
 };
 

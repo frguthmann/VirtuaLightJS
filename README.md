@@ -4,7 +4,7 @@ A Physically Based Rendering engine created from scratch in WebGL2, compatible w
 
 ## Demo
 
-Right here: https://frguthmann.github.io/VirtuaLightJS/
+Right here: https://virtualightjs.herokuapp.com/index.html
 
 ## Features
 
